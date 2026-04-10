@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const inference = require('./llm/inference');
+const LanguageDetect = require('languagedetect');
+const lngDetector = new LanguageDetect();
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -40,4 +42,15 @@ ipcMain.handle('get-ollama-models', async () => {
 
 ipcMain.handle('translate-text', async (event, sourceLang, targetLang, text, config) => {
     return await inference.translateText(sourceLang, targetLang, text, config);
+});
+
+ipcMain.handle('detect-language', async (event, text) => {
+    if (!text || text.trim().length < 2) return null;
+    const results = lngDetector.detect(text, 1);
+    if (results && results.length > 0) {
+        const lang = results[0][0];
+        // Ensure it's capitalized properly: 'english' -> 'English'
+        return lang.charAt(0).toUpperCase() + lang.slice(1);
+    }
+    return null;
 });

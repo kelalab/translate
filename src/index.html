@@ -11,13 +11,18 @@
     <div class="app-container">
         <header class="header">
             <div class="logo">
-                <h1>Translategemma</h1>
-                <span class="status-badge" id="local-status">Loading Model...</span>
+                <h1 data-i18n="title">Translategemma</h1>
+                <span class="status-badge" id="local-status" data-i18n="loading">Loading Model...</span>
             </div>
             <div class="engine-controls">
+                <div class="ui-locale-toggle">
+                    <button class="locale-btn" data-lang="en">EN</button>
+                    <button class="locale-btn" data-lang="fi">FI</button>
+                    <button class="locale-btn" data-lang="sv">SV</button>
+                </div>
                 <div class="ollama-status" id="ollama-status">Checking Ollama...</div>
                 <select id="engine-select" class="modern-select">
-                    <option value="local">Built-in (Translategemma 4B)</option>
+                    <option value="local" data-i18n="builtIn">Built-in (Translategemma 4B)</option>
                 </select>
             </div>
         </header>
@@ -33,16 +38,16 @@
                         </div>
                     </div>
                 </div>
-                <textarea id="source-text" placeholder="Enter text to translate..."></textarea>
+                <textarea id="source-text" placeholder="Enter text to translate..." data-i18n-attr="placeholder:sourcePlace"></textarea>
                 <div class="pane-footer">
-                    <button class="icon-btn" id="paste-source" title="Paste">📋 Paste</button>
-                    <button class="icon-btn" id="clear-source" title="Clear">✖ Clear</button>
+                    <button class="icon-btn" id="paste-source" title="Paste"><span data-i18n="paste">📋 Paste</span></button>
+                    <button class="icon-btn" id="clear-source" title="Clear"><span data-i18n="clear">✖ Clear</span></button>
                 </div>
             </div>
 
             <div class="translate-action">
                 <button id="translate-btn" class="action-btn">
-                    <span class="btn-text">Translate</span>
+                    <span class="btn-text" data-i18n="translate">Translate</span>
                     <span class="btn-spinner" style="display: none;">↻</span>
                 </button>
             </div>
@@ -57,15 +62,28 @@
                         </div>
                     </div>
                 </div>
-                <textarea id="target-text" placeholder="Translation will appear here..." readonly></textarea>
+                <textarea id="target-text" placeholder="Translation will appear here..." readonly data-i18n-attr="placeholder:targetPlace"></textarea>
                 <div class="pane-footer">
-                    <button class="icon-btn" id="copy-target" title="Copy">📋 Copy</button>
+                    <button class="icon-btn" id="copy-target" title="Copy"><span id="copy-target-text" data-i18n="copy">📋 Copy</span></button>
                 </div>
             </div>
         </main>
         
+        <section class="kela-accordion" id="history-accordion">
+            <button class="accordion-header" id="history-toggle">
+                <span data-i18n="historyTitle">Translation History</span>
+                <span class="accordion-icon">▼</span>
+            </button>
+            <div class="accordion-content" id="history-content">
+                <div id="history-list" class="history-list">
+                    <!-- History cards will be appended here -->
+                </div>
+            </div>
+        </section>
+        
         <div class="error-toast" id="error-toast"></div>
     </div>
+    <script src="locales.js"></script>
     <script src="renderer.js"></script>
 </body>
 </html>
