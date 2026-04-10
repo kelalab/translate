@@ -1,0 +1,67 @@
+{
+  "name": "translate",
+  "productName": "TranslateGemma",
+  "version": "1.0.0",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "postinstall": "electron-builder install-app-deps",
+    "rebuild": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "translation",
+    "llama",
+    "local",
+    "ai"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "description": "Local offline translator powered by TranslateGemma",
+  "dependencies": {
+    "node-llama-cpp": "^3.18.1"
+  },
+  "devDependencies": {
+    "electron": "^41.1.1",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.antigravity.translategemma",
+    "files": [
+      "**/*",
+      "!models/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": "nsis-web"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "http://localhost/"
+      }
+    ],
+    "nsis": {
+      "guid": "com.antigravity.translategemma.v2",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TranslateGemma"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "extraResources": [
+      {
+        "from": "models",
+        "to": "models",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  }
+}

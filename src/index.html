@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translategemma</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">
+                <h1>Translategemma</h1>
+                <span class="status-badge" id="local-status">Loading Model...</span>
+            </div>
+            <div class="engine-controls">
+                <div class="ollama-status" id="ollama-status">Checking Ollama...</div>
+                <select id="engine-select" class="modern-select">
+                    <option value="local">Built-in (Translategemma 4B)</option>
+                </select>
+            </div>
+        </header>
+
+        <main class="translator-grid">
+            <div class="pane source-pane">
+                <div class="pane-header">
+                    <div class="custom-select" id="source-lang-select">
+                        <div class="select-selected">English</div>
+                        <div class="select-items select-hide">
+                            <input type="text" class="select-search" placeholder="Search language...">
+                            <div class="select-options"></div>
+                        </div>
+                    </div>
+                </div>
+                <textarea id="source-text" placeholder="Enter text to translate..."></textarea>
+                <div class="pane-footer">
+                    <button class="icon-btn" id="paste-source" title="Paste">📋 Paste</button>
+                    <button class="icon-btn" id="clear-source" title="Clear">✖ Clear</button>
+                </div>
+            </div>
+
+            <div class="translate-action">
+                <button id="translate-btn" class="action-btn">
+                    <span class="btn-text">Translate</span>
+                    <span class="btn-spinner" style="display: none;">↻</span>
+                </button>
+            </div>
+
+            <div class="pane target-pane">
+                <div class="pane-header">
+                    <div class="custom-select" id="target-lang-select">
+                        <div class="select-selected">Finnish</div>
+                        <div class="select-items select-hide">
+                            <input type="text" class="select-search" placeholder="Search language...">
+                            <div class="select-options"></div>
+                        </div>
+                    </div>
+                </div>
+                <textarea id="target-text" placeholder="Translation will appear here..." readonly></textarea>
+                <div class="pane-footer">
+                    <button class="icon-btn" id="copy-target" title="Copy">📋 Copy</button>
+                </div>
+            </div>
+        </main>
+        
+        <div class="error-toast" id="error-toast"></div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>
