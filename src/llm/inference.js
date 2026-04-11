@@ -74,11 +74,43 @@ async function fetchOllamaModels() {
     });
 }
 
+const glossary = {
+    "Kela": {
+        "Finnish": "Kela",
+        "Swedish": "FPA",
+        "English": "Kela"
+    },
+    "Kansaneläkelaitos": {
+        "Finnish": "Kansaneläkelaitos",
+        "Swedish": "Folkpensionsanstalten",
+        "English": "The Social Insurance Institution of Finland"
+    }
+};
+
 async function translateText(sourceLang, targetLang, text, config) {
-    // const prompt = `Translate the following text from ${sourceLang} to ${targetLang}. Only provide the translation, no other text.\n\nText: ${text}\n\nTranslation:`;
+    let terminologyInstructions = "";
+    const activeRules = [];
 
-    const prompt = `You are a professional ${sourceLang} to ${targetLang} translator. Your goal is to accurately convey the meaning and nuances of the original ${sourceLang}  text while adhering to ${targetLang} grammar, vocabulary, and cultural sensitivities. Produce only the ${targetLang} translation, without any additional explanations or commentary. Please translate the following ${sourceLang} text into ${targetLang}: \n\n${text}`;
+    // Evaluate if any source terms exist in the provided text
+    for (const [baseTerm, translations] of Object.entries(glossary)) {
+        const sourceTerm = translations[sourceLang];
+        const targetTerm = translations[targetLang];
 
+        // If the glossary has the terms for both languages and the source term is found in the text
+        if (sourceTerm && targetTerm && text.includes(sourceTerm)) {
+            // Avoid adding a rule if the word shouldn't be translated (e.g. Kela -> Kela)
+            if (sourceTerm !== targetTerm) {
+                activeRules.push(`- Translate "${sourceTerm}" strictly to "${targetTerm}"`);
+            }
+        }
+    }
+
+    if (activeRules.length > 0) {
+        terminologyInstructions = "\nIMPORTANT TERMINOLOGY RULES:\n" + activeRules.join("\n") + "\n";
+    }
+
+
+    const prompt = `You are a professional ${sourceLang} to ${targetLang} translator. Your goal is to accurately convey the meaning and nuances of the original ${sourceLang} text while adhering to ${targetLang} grammar, vocabulary, and cultural sensitivities. Produce only the ${targetLang} translation, without any additional explanations or commentary.${terminologyInstructions}\nPlease translate the following ${sourceLang} text into ${targetLang}: \n\n${text}`;
 
     if (config.engine === 'ollama') {
         return new Promise((resolve) => {
@@ -111,7 +143,11 @@ async function translateText(sourceLang, targetLang, text, config) {
         try {
             const init = await initLocalModel();
             if (!init.success) throw new Error(init.error);
+
+            // Clear memory from the previous translation to stay stateless
+            session.setChatHistory([]);
             const response = await session.prompt(prompt);
+
             return { success: true, translatedText: response.trim() };
         } catch (e) {
             return { success: false, error: e.toString() };

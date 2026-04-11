@@ -25,9 +25,10 @@ function setupCustomSelect(selectId, defaultVal) {
         const shortcutDiv = document.createElement('div');
         shortcutDiv.className = 'shortcut-group';
         shortcuts.forEach(lang => {
-            if (lang.toLowerCase().includes(filterText.toLowerCase())) {
+            const locLang = window.Locale ? window.Locale.tLang(lang) : lang;
+            if (lang.toLowerCase().includes(filterText.toLowerCase()) || locLang.toLowerCase().includes(filterText.toLowerCase())) {
                 const opt = document.createElement('div');
-                opt.textContent = `⭐ ${lang}`;
+                opt.textContent = `⭐ ${locLang}`;
                 opt.dataset.value = lang;
                 opt.addEventListener('click', () => {
                     selectWrap.dataset.trueValue = lang;
@@ -43,9 +44,10 @@ function setupCustomSelect(selectId, defaultVal) {
 
         // Render others
         languages.forEach(lang => {
-            if (lang.toLowerCase().includes(filterText.toLowerCase()) && !shortcuts.includes(lang)) {
+            const locLang = window.Locale ? window.Locale.tLang(lang) : lang;
+            if ((lang.toLowerCase().includes(filterText.toLowerCase()) || locLang.toLowerCase().includes(filterText.toLowerCase())) && !shortcuts.includes(lang)) {
                 const opt = document.createElement('div');
-                opt.textContent = lang;
+                opt.textContent = locLang;
                 opt.dataset.value = lang;
                 opt.addEventListener('click', () => {
                     selectWrap.dataset.trueValue = lang;
@@ -76,6 +78,11 @@ function setupCustomSelect(selectId, defaultVal) {
             selectWrap.dataset.trueValue = lang;
             selected.textContent = window.Locale ? window.Locale.tLang(lang) : lang;
         }
+    };
+
+    // Expose re-rendering for dynamic locale switching
+    selectWrap.reRenderOptions = () => {
+        renderOptions(searchInput.value || '');
     };
 }
 
@@ -247,6 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const lang = e.target.dataset.lang;
             if (window.Locale) window.Locale.setLocale(lang);
             renderHistory(); // Re-render history to translate UI buttons inside it
+            document.getElementById('source-lang-select').reRenderOptions();
+            document.getElementById('target-lang-select').reRenderOptions();
         });
     });
 
