@@ -29,7 +29,9 @@ const translations = {
         imgSrcLang: "Image Text Language:",
         imgTgtLang: "Translate To:",
         docSrcLang: "Document Language:",
-        docTgtLang: "Translate To:"
+        docTgtLang: "Translate To:",
+        docDrop: "Drag & Drop Word (.docx) or Text (.txt) Document here",
+        docReset: "Reset / Process Another Document"
     },
     fi: {
         title: "Translategemma",
@@ -61,7 +63,9 @@ const translations = {
         imgSrcLang: "Kuvan kieli:",
         imgTgtLang: "Käännä kielelle:",
         docSrcLang: "Asiakirjan kieli:",
-        docTgtLang: "Käännä kielelle:"
+        docTgtLang: "Käännä kielelle:",
+        docDrop: "Raahaa Asiakirja (.docx) tai Tekstitiedosto (.txt) tähän",
+        docReset: "Nollaa / Käännä toinen asiakirja"
     },
     sv: {
         title: "Translategemma",
@@ -93,7 +97,9 @@ const translations = {
         imgSrcLang: "Bildens textspråk:",
         imgTgtLang: "Översätt till:",
         docSrcLang: "Dokumentspråk:",
-        docTgtLang: "Översätt till:"
+        docTgtLang: "Översätt till:",
+        docDrop: "Dra och släpp Word- (.docx) eller textdokument (.txt) här",
+        docReset: "Återställ / Översätt ett annat dokument"
     }
 };
 
