@@ -54,24 +54,33 @@ async function initLocalModel() {
     }
 }
 
-async function fetchOllamaModels() {
-    return new Promise((resolve) => {
-        const req = http.get('http://localhost:11434/api/tags', (res) => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-                try {
-                    const parsed = JSON.parse(data);
-                    resolve({ success: true, models: parsed.models || [] });
-                } catch (e) { resolve({ success: false, error: "Parsing error" }); }
-            });
-        });
-        req.on('error', (e) => resolve({ success: false, error: "Ollama offline" }));
-        req.setTimeout(2000, () => {
-            req.destroy();
-            resolve({ success: false, error: "Ollama offline" });
-        });
-    });
+async function checkProvider(endpoint, apiKey) {
+    try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+        
+        let url = endpoint;
+        if (!url.endsWith('/')) url += '/';
+        url += 'models';
+
+        const res = await fetch(url, { headers });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        
+        let models = [];
+        if (data && data.data && Array.isArray(data.data)) {
+            models = data.data.map(m => { return { name: m.id }; });
+        } else if (Array.isArray(data)) {
+            models = data.map(m => { return { name: m.id || m.name }; });
+        } else if (data && data.models) {
+             // native ollama format
+            models = data.models.map(m => { return { name: m.name }; });
+        }
+        
+        return { success: true, models: models };
+    } catch(e) {
+        return { success: false, error: e.message };
+    }
 }
 
 const glossary = {
@@ -112,33 +121,51 @@ async function translateText(sourceLang, targetLang, text, config) {
 
     const prompt = `You are a professional ${sourceLang} to ${targetLang} translator. Your goal is to accurately convey the meaning and nuances of the original ${sourceLang} text while adhering to ${targetLang} grammar, vocabulary, and cultural sensitivities. Produce only the ${targetLang} translation, without any additional explanations or commentary.${terminologyInstructions}\nPlease translate the following ${sourceLang} text into ${targetLang}: \n\n${text}`;
 
-    if (config.engine === 'ollama') {
-        return new Promise((resolve) => {
-            const reqData = JSON.stringify({
+    if (config.engine === 'api') {
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (config.apiKey) headers['Authorization'] = `Bearer ${config.apiKey}`;
+            
+            let url = config.endpoint;
+            if (!url.endsWith('/')) url += '/';
+            // Determine if the endpoint is an OpenAI chat completions or if it's explicitly the Native Ollama generate
+            if (!url.includes('/chat/completions') && !url.includes('/api/generate')) {
+                url += 'chat/completions';
+            }
+
+            const isChatMode = url.includes('chat');
+            const payload = {
                 model: config.modelName,
-                prompt: prompt,
                 stream: false
-            });
-            const req = http.request('http://localhost:11434/api/generate', {
+            };
+            
+            if (isChatMode) {
+                payload.messages = [{ role: "user", content: prompt }];
+            } else {
+                payload.prompt = prompt;
+            }
+
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(reqData)
-                }
-            }, (res) => {
-                let data = '';
-                res.on('data', chunk => data += chunk);
-                res.on('end', () => {
-                    try {
-                        const parsed = JSON.parse(data);
-                        resolve({ success: true, translatedText: parsed.response.trim() });
-                    } catch (e) { resolve({ success: false, error: "Failed to parse Ollama response" }); }
-                });
+                headers,
+                body: JSON.stringify(payload)
             });
-            req.on('error', e => resolve({ success: false, error: e.message }));
-            req.write(reqData);
-            req.end();
-        });
+            
+            if (!res.ok) throw new Error("HTTP error " + res.status);
+            const data = await res.json();
+            
+            let translated = "";
+            if (data.choices && data.choices[0] && data.choices[0].message) {
+                translated = data.choices[0].message.content; // OpenAI Chat Completions
+            } else if (data.response) {
+                translated = data.response; // Ollama generate
+            } else {
+                 throw new Error("Unknown response format");
+            }
+            return { success: true, translatedText: translated.trim() };
+        } catch(e) {
+            return { success: false, error: "API Failure: " + e.message };
+        }
     } else {
         try {
             const init = await initLocalModel();
@@ -157,6 +184,6 @@ async function translateText(sourceLang, targetLang, text, config) {
 
 module.exports = {
     initLocalModel,
-    fetchOllamaModels,
+    checkProvider,
     translateText
 };

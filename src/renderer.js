@@ -97,68 +97,176 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCustomSelect('target-lang-select', 'Finnish');
 
     // UI Elements
-    const localStatus = document.getElementById('local-status');
-    const ollamaStatus = document.getElementById('ollama-status');
+    const apiSettingsBtn = document.getElementById('api-settings-btn');
     const engineSelect = document.getElementById('engine-select');
     const translateBtn = document.getElementById('translate-btn');
     const sourceText = document.getElementById('source-text');
     const targetText = document.getElementById('target-text');
     const errorToast = document.getElementById('error-toast');
+    
+    // Settings Modal Elements
+    const settingsModal = document.getElementById('settings-modal');
+    const closeSettings = document.getElementById('close-settings');
+    const providerList = document.getElementById('provider-list');
+    const addProviderBtn = document.getElementById('add-provider-btn');
+    const provNameInput = document.getElementById('prov-name');
+    const provEndpointInput = document.getElementById('prov-endpoint');
+    const provKeyInput = document.getElementById('prov-key');
+    const provModelsInput = document.getElementById('prov-models');
+
+    let advancedApiEnabled = false;
+    let builtInHtml = '';
 
     // Init Logic
     async function initApp() {
-        // Check local model
+        advancedApiEnabled = await window.api.getAdvancedApiFlag();
+        if (advancedApiEnabled) {
+            apiSettingsBtn.style.display = 'inline-block';
+        }
+
         const local = await window.api.getLocalModelStatus();
         if (local.success) {
-            localStatus.removeAttribute('data-i18n');
-            localStatus.textContent = local.modelName;
-            localStatus.className = 'status-badge success';
-            // Set tooltip since text might truncate
-            localStatus.title = local.modelName;
+            builtInHtml = `<option value="local">${local.modelName} (Built-in)</option>`;
         } else {
-            localStatus.setAttribute('data-i18n', 'noModel');
-            localStatus.textContent = window.Locale ? window.Locale.t('noModel') : 'No Model Found';
-            localStatus.className = 'status-badge error';
+            builtInHtml = `<option value="error" disabled>Built-in Error: ${local.error}</option>`;
             showError("Built-in model not found. " + local.error);
         }
 
-        // Check Ollama
-        checkOllama();
-        setInterval(checkOllama, 10000); // Check every 10s
+        checkProviders();
+        setInterval(checkProviders, 15000); // Check every 15s to be gentle
+        
+        engineSelect.addEventListener('change', () => {
+            translateBtn.disabled = engineSelect.value === 'error';
+        });
     }
 
-    async function checkOllama() {
-        const result = await window.api.getOllamaModels();
-        const currentSelection = engineSelect.value;
+    function getProviders() {
+        let providers = [];
+        try {
+            providers = JSON.parse(localStorage.getItem('apiProviders') || '[]');
+        } catch(e) {}
 
-        let hasLocal = false;
-        Array.from(engineSelect.options).forEach(opt => {
-            if (opt.value === 'local') hasLocal = true;
-        });
-
-        engineSelect.innerHTML = '';
-        if (hasLocal) {
-            engineSelect.innerHTML += `<option value="local" data-i18n="builtIn">${window.Locale ? window.Locale.t('builtIn') : 'Built-in'}</option>`;
-        } else {
-            engineSelect.innerHTML += `<option value="local" data-i18n="builtInChecking">${window.Locale ? window.Locale.t('builtInChecking') : 'Checking...'}</option>`;
-        }
-
-        if (result.success) {
-            ollamaStatus.textContent = window.Locale ? window.Locale.t('online') : "Ollama: Online";
-            ollamaStatus.className = "ollama-status online";
-            result.models.forEach(m => {
-                engineSelect.innerHTML += `<option value="ollama:${m.name}">Ollama: ${m.name}</option>`;
+        // Always implicitly check localhost Ollama first
+        const hasLocalOllama = providers.find(p => p.id === 'default-ollama');
+        if (!hasLocalOllama) {
+            providers.unshift({
+                id: 'default-ollama',
+                name: 'Local Ollama',
+                endpoint: 'http://localhost:11434/v1',
+                apiKey: ''
             });
-        } else {
-            ollamaStatus.textContent = window.Locale ? window.Locale.t('offline') : "Ollama: Offline";
-            ollamaStatus.className = "ollama-status offline";
+        }
+        return providers;
+    }
+
+    function saveProviders(providers) {
+        localStorage.setItem('apiProviders', JSON.stringify(providers));
+    }
+
+    async function checkProviders() {
+        const currentSelection = engineSelect.value;
+        const providers = getProviders();
+        let optionsHtml = builtInHtml;
+
+        for (const p of providers) {
+            // Only non-default providers require the advanced flag to be visible
+            if (!advancedApiEnabled && p.id !== 'default-ollama') continue;
+
+            const res = await window.api.checkProvider(p.endpoint, p.apiKey);
+            if (res.success && res.models && res.models.length > 0) {
+                let filteredModels = res.models;
+                if (p.modelsWhitelist) {
+                    const allowedOpts = p.modelsWhitelist.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+                    filteredModels = filteredModels.filter(m => allowedOpts.includes(m.name.toLowerCase()));
+                }
+                filteredModels.sort((a,b) => a.name.localeCompare(b.name));
+
+                if (filteredModels.length > 0) {
+                    optionsHtml += `<optgroup label="${p.name}">`;
+                    filteredModels.forEach(m => {
+                        const valueStr = JSON.stringify({ providerId: p.id, model: m.name });
+                        // Encode to avoid HTML attribute break
+                        const encodedVal = btoa(valueStr);
+                        optionsHtml += `<option value="api:${encodedVal}">${m.name}</option>`;
+                    });
+                    optionsHtml += `</optgroup>`;
+                }
+            }
         }
 
-        // Restore selection if possible
-        if (currentSelection) {
+        engineSelect.innerHTML = optionsHtml;
+
+        // Restore selection
+        if (currentSelection && currentSelection !== 'error') {
             engineSelect.value = currentSelection;
-            if (engineSelect.selectedIndex === -1) engineSelect.value = 'local';
+            if (engineSelect.selectedIndex === -1) engineSelect.value = builtInHtml.includes('value="error"') ? 'error' : 'local';
+        } else {
+            engineSelect.value = builtInHtml.includes('value="error"') ? 'error' : 'local';
         }
+
+        // Disable selector if 1 or 0 options
+        if (engineSelect.options.length <= 1) {
+            engineSelect.disabled = true;
+        } else {
+            engineSelect.disabled = false;
+        }
+
+        translateBtn.disabled = engineSelect.value === 'error';
+    }
+
+    // Modal UI Logic
+    apiSettingsBtn.addEventListener('click', () => {
+        renderProviderList();
+        settingsModal.style.display = 'flex';
+    });
+    
+    closeSettings.addEventListener('click', () => {
+        settingsModal.style.display = 'none';
+        checkProviders();
+    });
+
+    addProviderBtn.addEventListener('click', () => {
+        const n = provNameInput.value.trim();
+        const e = provEndpointInput.value.trim();
+        const k = provKeyInput.value.trim();
+        const m = provModelsInput.value.trim();
+        if (!n || !e) return showError("Name and Endpoint are required.");
+
+        const p = getProviders();
+        p.push({ id: 'p_' + Date.now(), name: n, endpoint: e, apiKey: k, modelsWhitelist: m });
+        saveProviders(p);
+        provNameInput.value = ''; provEndpointInput.value = ''; provKeyInput.value = ''; provModelsInput.value = '';
+        renderProviderList();
+    });
+
+    function renderProviderList() {
+        providerList.innerHTML = '';
+        const p = getProviders();
+        p.forEach(prov => {
+            if (prov.id === 'default-ollama') return; // Hide default ollama from list
+
+            const div = document.createElement('div');
+            div.className = 'provider-item';
+            
+            const details = document.createElement('div');
+            details.className = 'provider-item-details';
+            let extras = prov.endpoint;
+            if (prov.modelsWhitelist) extras += `<br><span style="color:#888;">Filter: ${prov.modelsWhitelist}</span>`;
+            details.innerHTML = `<strong>${prov.name}</strong><span>${extras}</span>`;
+            
+            const delBtn = document.createElement('button');
+            delBtn.className = 'icon-btn';
+            delBtn.textContent = '🗑';
+            delBtn.addEventListener('click', () => {
+                const newP = getProviders().filter(x => x.id !== prov.id);
+                saveProviders(newP);
+                renderProviderList();
+            });
+
+            div.appendChild(details);
+            div.appendChild(delBtn);
+            providerList.appendChild(div);
+        });
     }
 
     initApp();
@@ -225,9 +333,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const engineVal = engineSelect.value;
         const config = { engine: 'local' };
-        if (engineVal.startsWith('ollama:')) {
-            config.engine = 'ollama';
-            config.modelName = engineVal.split(':')[1];
+        if (engineVal.startsWith('api:')) {
+            config.engine = 'api';
+            try {
+                const decoded = JSON.parse(atob(engineVal.split(':')[1]));
+                const p = getProviders().find(x => x.id === decoded.providerId);
+                if (p) {
+                    config.endpoint = p.endpoint;
+                    config.apiKey = p.apiKey;
+                    config.modelName = decoded.model;
+                }
+            } catch(e) {
+                 showError("Failed to parse API config");
+                 return;
+            }
         }
 
         translateBtn.disabled = true;

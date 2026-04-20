@@ -36,8 +36,16 @@ ipcMain.handle('get-local-model-status', async () => {
     return await inference.initLocalModel();
 });
 
-ipcMain.handle('get-ollama-models', async () => {
-    return await inference.fetchOllamaModels();
+ipcMain.handle('get-advanced-api-flag', () => {
+    const hasFlag = process.argv.some(arg => arg.includes('enable-external-api') || arg.includes('advanced-api')) ||
+           app.commandLine.hasSwitch('enable-external-api') ||
+           app.commandLine.hasSwitch('advanced-api') ||
+           process.env.ADVANCED_API === '1' || process.env.ENABLE_EXTERNAL_API === '1';
+    return hasFlag;
+});
+
+ipcMain.handle('check-provider', async (event, endpoint, apiKey) => {
+    return await inference.checkProvider(endpoint, apiKey);
 });
 
 ipcMain.handle('translate-text', async (event, sourceLang, targetLang, text, config) => {

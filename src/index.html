@@ -12,7 +12,6 @@
         <header class="header">
             <div class="logo">
                 <h1 data-i18n="title">Translategemma</h1>
-                <span class="status-badge" id="local-status" data-i18n="loading">Loading Model...</span>
             </div>
             <div class="engine-controls">
                 <div class="ui-locale-toggle">
@@ -20,7 +19,7 @@
                     <button class="locale-btn" data-lang="fi">FI</button>
                     <button class="locale-btn" data-lang="sv">SV</button>
                 </div>
-                <div class="ollama-status" id="ollama-status">Checking Ollama...</div>
+                <button id="api-settings-btn" class="icon-btn" style="display: none;" title="API Settings">⚙</button>
                 <select id="engine-select" class="modern-select">
                     <option value="local" data-i18n="builtIn">Built-in (Translategemma 4B)</option>
                 </select>
@@ -82,6 +81,27 @@
         </section>
         
         <div class="error-toast" id="error-toast"></div>
+
+        <div id="settings-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>API Providers</h2>
+                    <button id="close-settings" class="icon-btn">✖</button>
+                </div>
+                <div class="modal-body">
+                    <div id="provider-list"></div>
+                    <hr>
+                    <h3 style="margin-top:1rem;margin-bottom:0.5rem;">Add Provider</h3>
+                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                        <input type="text" id="prov-name" class="modern-input" placeholder="Name (e.g. Remote Ollama)">
+                        <input type="text" id="prov-endpoint" class="modern-input" placeholder="Endpoint URL (e.g. http://host:11434/v1)">
+                        <input type="password" id="prov-key" class="modern-input" placeholder="API Key (Optional)">
+                        <input type="text" id="prov-models" class="modern-input" placeholder="Whitelist Models (comma separated, blank for all)">
+                        <button id="add-provider-btn" class="action-btn" style="font-size:0.9rem; padding: 0.5rem;">Add Provider</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="locales.js"></script>
     <script src="renderer.js"></script>
