@@ -26,7 +26,14 @@
             </div>
         </header>
 
-        <main class="translator-grid">
+        <nav class="main-tabs">
+            <button class="main-tab-btn active" data-tab="tab-text" data-i18n="tabText">Text</button>
+            <button class="main-tab-btn" data-tab="tab-documents" data-i18n="tabDoc">Documents</button>
+            <button class="main-tab-btn" data-tab="tab-images" data-i18n="tabImg">Images</button>
+        </nav>
+
+        <section id="tab-text" class="tab-pane active">
+            <main class="translator-grid">
             <div class="pane source-pane">
                 <div class="pane-header">
                     <div class="custom-select" id="source-lang-select">
@@ -67,6 +74,64 @@
                 </div>
             </div>
         </main>
+        </section>
+
+        <section id="tab-documents" class="tab-pane" style="display: none;">
+            <div class="drop-zone" id="doc-drop-zone">
+                <div class="drop-msg">Drag & Drop .docx or .txt file here</div>
+                <div class="progress-box" style="display: none;" id="doc-progress-box">
+                     <div class="progress-bar"><div class="progress-fill" id="doc-progress-fill" style="width: 0%"></div></div>
+                     <span id="doc-progress-text">Processing...</span>
+                </div>
+            </div>
+            <div class="streaming-console" id="doc-console" style="display: none;"></div>
+        </section>
+
+        <section id="tab-images" class="tab-pane" style="display: none;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; align-items: center; background: #fafafa; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);" data-i18n="imgSrcLang">Image Text Language:</span>
+                <div class="custom-select" id="image-source-lang-select" style="width: 180px;">
+                    <div class="select-selected">English</div>
+                    <div class="select-items select-hide">
+                        <input type="text" class="select-search" placeholder="Search language...">
+                        <div class="select-options"></div>
+                    </div>
+                </div>
+                <span style="color: var(--text-secondary); margin: 0 10px;">➔</span>
+                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);" data-i18n="imgTgtLang">Translate To:</span>
+                <div class="custom-select" id="image-target-lang-select" style="width: 180px;">
+                    <div class="select-selected">Finnish</div>
+                    <div class="select-items select-hide">
+                        <input type="text" class="select-search" placeholder="Search language...">
+                        <div class="select-options"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="drop-zone" id="image-drop-zone">
+               <div class="drop-msg" id="image-drop-msg" data-i18n="imageDrop">Drag & Drop Image or Paste from Clipboard</div>
+               <img id="image-preview" src="" style="display: none;" />
+            </div>
+            <div class="translator-grid image-split-view" id="image-split-view" style="display: none; margin-top: 20px;">
+                <div class="pane source-pane">
+                    <div class="pane-header"><strong style="padding-left:12px; font-weight: 500; font-size: 0.95rem; line-height: 2.5;" data-i18n="extractedSource">Extracted Source Text</strong></div>
+                    <textarea id="image-source-text" data-i18n-attr="placeholder:ocrRunning"></textarea>
+                </div>
+                <div class="translate-action">
+                    <button id="image-translate-btn" class="action-btn">
+                        <span class="btn-text" data-i18n="translate">Translate</span>
+                        <span class="btn-spinner" style="display: none;">↻</span>
+                    </button>
+                </div>
+                <div class="pane target-pane">
+                    <div class="pane-header"><strong style="padding-left:12px; font-weight: 500; font-size: 0.95rem; line-height: 2.5;" data-i18n="translatedText">Translated Text</strong></div>
+                    <textarea id="image-target-text" readonly data-i18n-attr="placeholder:targetPlace"></textarea>
+                    <div class="pane-footer">
+                        <button class="icon-btn" id="copy-image-target" title="Copy"><span id="copy-image-target-text" data-i18n="copy">📋 Copy</span></button>
+                    </div>
+                </div>
+            </div>
+        </section>
         
         <section class="kela-accordion" id="history-accordion">
             <button class="accordion-header" id="history-toggle">
@@ -103,6 +168,7 @@
             </div>
         </div>
     </div>
+    <script src="../node_modules/tesseract.js/dist/tesseract.min.js"></script>
     <script src="locales.js"></script>
     <script src="renderer.js"></script>
 </body>

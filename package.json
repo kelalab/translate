@@ -20,7 +20,8 @@
   "description": "Local offline translator powered by TranslateGemma",
   "dependencies": {
     "languagedetect": "^2.0.0",
-    "node-llama-cpp": "^3.18.1"
+    "node-llama-cpp": "^3.18.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "electron": "^41.1.1",

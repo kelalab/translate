@@ -17,7 +17,17 @@ const translations = {
         errCopy: "Failed to copy",
         noModel: "No Model Found",
         builtIn: "Built-in (Translategemma 4B)",
-        builtInChecking: "Built-in (Checking...)"
+        builtInChecking: "Built-in (Checking...)",
+        tabText: "Text",
+        tabDoc: "Documents",
+        tabImg: "Images",
+        extractedSource: "Extracted Source Text",
+        translatedText: "Translated Text",
+        imageDrop: "Drag & Drop Image or Paste from Clipboard",
+        ocrRunning: "Running OCR...",
+        ocrFailed: "OCR failed: ",
+        imgSrcLang: "Image Text Language:",
+        imgTgtLang: "Translate To:"
     },
     fi: {
         title: "Translategemma",
@@ -37,7 +47,17 @@ const translations = {
         errCopy: "Kopiointi epäonnistui",
         noModel: "Mallia ei löydy",
         builtIn: "Sisäänrakennettu (Translategemma 4B)",
-        builtInChecking: "Sisäänrakennettu (Tarkistetaan...)"
+        builtInChecking: "Sisäänrakennettu (Tarkistetaan...)",
+        tabText: "Teksti",
+        tabDoc: "Asiakirjat",
+        tabImg: "Kuvat",
+        extractedSource: "Tunnistettu lähdeteksti",
+        translatedText: "Käännetty teksti",
+        imageDrop: "Raahaa kuva tähän tai liitä leikepöydältä",
+        ocrRunning: "Tunnistetaan tekstiä...",
+        ocrFailed: "Tekstintunnistus epäonnistui: ",
+        imgSrcLang: "Kuvan kieli:",
+        imgTgtLang: "Käännä kielelle:"
     },
     sv: {
         title: "Translategemma",
@@ -57,7 +77,17 @@ const translations = {
         errCopy: "Kopiering misslyckades",
         noModel: "Ingen modell hittades",
         builtIn: "Inbyggd (Translategemma 4B)",
-        builtInChecking: "Inbyggd (Kontrollerar...)"
+        builtInChecking: "Inbyggd (Kontrollerar...)",
+        tabText: "Text",
+        tabDoc: "Dokument",
+        tabImg: "Bilder",
+        extractedSource: "Extraherad källtext",
+        translatedText: "Översatt text",
+        imageDrop: "Dra bild hit eller klistra in",
+        ocrRunning: "Kör OCR...",
+        ocrFailed: "OCR misslyckades: ",
+        imgSrcLang: "Bildens textspråk:",
+        imgTgtLang: "Översätt till:"
     }
 };
 

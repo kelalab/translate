@@ -8,7 +8,7 @@ const languages = [
 
 const shortcuts = ["English", "Finnish", "Swedish"];
 
-function setupCustomSelect(selectId, defaultVal) {
+function setupCustomSelect(selectId, defaultVal, limitLangs = null) {
     const selectWrap = document.getElementById(selectId);
     const selected = selectWrap.querySelector('.select-selected');
     const itemsGroup = selectWrap.querySelector('.select-items');
@@ -25,6 +25,7 @@ function setupCustomSelect(selectId, defaultVal) {
         const shortcutDiv = document.createElement('div');
         shortcutDiv.className = 'shortcut-group';
         shortcuts.forEach(lang => {
+            if (limitLangs && !limitLangs.includes(lang)) return;
             const locLang = window.Locale ? window.Locale.tLang(lang) : lang;
             if (lang.toLowerCase().includes(filterText.toLowerCase()) || locLang.toLowerCase().includes(filterText.toLowerCase())) {
                 const opt = document.createElement('div');
@@ -34,6 +35,7 @@ function setupCustomSelect(selectId, defaultVal) {
                     selectWrap.dataset.trueValue = lang;
                     selected.textContent = window.Locale ? window.Locale.tLang(lang) : lang;
                     itemsGroup.classList.add('select-hide');
+                    selectWrap.dispatchEvent(new Event('change'));
                 });
                 shortcutDiv.appendChild(opt);
             }
@@ -44,6 +46,7 @@ function setupCustomSelect(selectId, defaultVal) {
 
         // Render others
         languages.forEach(lang => {
+            if (limitLangs && !limitLangs.includes(lang)) return;
             const locLang = window.Locale ? window.Locale.tLang(lang) : lang;
             if ((lang.toLowerCase().includes(filterText.toLowerCase()) || locLang.toLowerCase().includes(filterText.toLowerCase())) && !shortcuts.includes(lang)) {
                 const opt = document.createElement('div');
@@ -53,6 +56,7 @@ function setupCustomSelect(selectId, defaultVal) {
                     selectWrap.dataset.trueValue = lang;
                     selected.textContent = window.Locale ? window.Locale.tLang(lang) : lang;
                     itemsGroup.classList.add('select-hide');
+                    selectWrap.dispatchEvent(new Event('change'));
                 });
                 optionsContainer.appendChild(opt);
             }
@@ -95,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupCustomSelect('source-lang-select', 'English');
     setupCustomSelect('target-lang-select', 'Finnish');
+    setupCustomSelect('image-source-lang-select', 'English');
+    setupCustomSelect('image-target-lang-select', 'Finnish', ['Finnish', 'Swedish']);
 
     // UI Elements
     const apiSettingsBtn = document.getElementById('api-settings-btn');
@@ -269,6 +275,95 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Tabs Logic ---
+    const tabBtns = document.querySelectorAll('.main-tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabPanes.forEach(p => p.style.display = 'none');
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.tab).style.display = 'flex';
+        });
+    });
+
+    // --- Image OCR Logic ---
+    const imageDropZone = document.getElementById('image-drop-zone');
+    const imagePreview = document.getElementById('image-preview');
+    const imageDropMsg = document.getElementById('image-drop-msg');
+    const imageSplitView = document.getElementById('image-split-view');
+    const imageSourceText = document.getElementById('image-source-text');
+    const imageTargetText = document.getElementById('image-target-text');
+    const imageTranslateBtn = document.getElementById('image-translate-btn');
+
+    imageDropZone.addEventListener('dragover', (e) => { e.preventDefault(); imageDropZone.classList.add('dragover'); });
+    imageDropZone.addEventListener('dragleave', () => imageDropZone.classList.remove('dragover'));
+    imageDropZone.addEventListener('drop', (e) => {
+        e.preventDefault(); imageDropZone.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) processImage(e.dataTransfer.files[0]);
+    });
+
+    document.addEventListener('paste', (e) => {
+        if (document.getElementById('tab-images').style.display !== 'none') {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let index in items) {
+                const item = items[index];
+                if (item.kind === 'file') {
+                    processImage(item.getAsFile());
+                    break;
+                }
+            }
+        }
+    });
+
+    let currentImageDataUrl = null;
+
+    async function runOCR() {
+        if (!currentImageDataUrl) return;
+        
+        imageSourceText.value = 'Running OCR...';
+        imageTargetText.value = '';
+        
+        try {
+            // Determine Tesseract language code from Image Source dropdown
+            const sourceWrap = document.getElementById('image-source-lang-select');
+            const sourceLang = sourceWrap.dataset.trueValue || 'English';
+            const tessLangMap = { "English": "eng", "Finnish": "fin", "Swedish": "swe", "Spanish": "spa", "French": "fra", "German": "deu", "Italian": "ita", "Portuguese": "por", "Dutch": "nld", "Polish": "pol", "Russian": "rus", "Danish": "dan", "Norwegian": "nor", "Greek": "ell", "Turkish": "tur", "Czech": "ces", "Hungarian": "hun", "Romanian": "ron", "Bulgarian": "bul", "Croatian": "hrv", "Serbian": "srp", "Slovak": "slk", "Slovenian": "slv", "Estonian": "est", "Latvian": "lav", "Lithuanian": "lit", "Ukrainian": "ukr" };
+            const tLang = tessLangMap[sourceLang] || "eng";
+
+            const { data: { text } } = await Tesseract.recognize(currentImageDataUrl, tLang, {
+                logger: m => {
+                    if(m.status === 'recognizing text') {
+                        imageSourceText.value = `Running OCR... ${Math.round(m.progress * 100)}%`;
+                    }
+                }
+            });
+            imageSourceText.value = text;
+            handleAutoDetect(text);
+        } catch (err) {
+            imageSourceText.value = '';
+            showError("OCR failed: " + err.message);
+        }
+    }
+
+    document.getElementById('image-source-lang-select').addEventListener('change', runOCR);
+
+    async function processImage(file) {
+        if (!file.type.startsWith('image/')) return showError("Please drop an image file.");
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            currentImageDataUrl = e.target.result;
+            imagePreview.src = currentImageDataUrl;
+            imagePreview.style.display = 'block';
+            imageDropMsg.style.display = 'none';
+            imageSplitView.style.display = 'flex';
+            
+            runOCR();
+        };
+        reader.readAsDataURL(file);
+    }
+
     initApp();
 
     function showError(msg) {
@@ -367,15 +462,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Localization UI ---
+    // --- Image OCR Translation Action ---
+    imageTranslateBtn.addEventListener('click', async () => {
+        if (!imageSourceText.value.trim()) return;
+
+        const sourceWrap = document.getElementById('image-source-lang-select');
+        const targetWrap = document.getElementById('image-target-lang-select');
+        const sourceLang = sourceWrap.dataset.trueValue || 'English';
+        const targetLang = targetWrap.dataset.trueValue || 'Finnish';
+
+        const engineVal = engineSelect.value;
+        const config = { engine: 'local' };
+        if (engineVal.startsWith('api:')) {
+            config.engine = 'api';
+            try {
+                const decoded = JSON.parse(atob(engineVal.split(':')[1]));
+                const p = getProviders().find(x => x.id === decoded.providerId);
+                if (p) { config.endpoint = p.endpoint; config.apiKey = p.apiKey; config.modelName = decoded.model; }
+            } catch(e) {}
+        }
+
+        imageTranslateBtn.disabled = true;
+        imageTranslateBtn.querySelector('.btn-text').style.display = 'none';
+        imageTranslateBtn.querySelector('.btn-spinner').style.display = 'inline-block';
+
+        const result = await window.api.translateText(sourceLang, targetLang, imageSourceText.value, config);
+
+        imageTranslateBtn.querySelector('.btn-text').style.display = 'inline-block';
+        imageTranslateBtn.querySelector('.btn-spinner').style.display = 'none';
+        imageTranslateBtn.disabled = false;
+
+        if (result.success) {
+            imageTargetText.value = result.translatedText;
+            saveHistory(sourceLang, targetLang, imageSourceText.value, result.translatedText);
+        } else {
+            showError(result.error);
+        }
+    });
+
+    // Make sure we update the selects dynamically on locale change
     document.querySelectorAll('.locale-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const lang = e.target.dataset.lang;
             if (window.Locale) window.Locale.setLocale(lang);
-            renderHistory(); // Re-render history to translate UI buttons inside it
+            renderHistory(); 
             document.getElementById('source-lang-select').reRenderOptions();
             document.getElementById('target-lang-select').reRenderOptions();
+            document.getElementById('image-source-lang-select').reRenderOptions();
+            document.getElementById('image-target-lang-select').reRenderOptions();
         });
+    });
+
+    // Image Tab Copy Button
+    document.getElementById('copy-image-target').addEventListener('click', async () => {
+        if (!imageTargetText.value) return;
+        try {
+            await navigator.clipboard.writeText(imageTargetText.value);
+            const btnText = document.getElementById('copy-image-target-text');
+            btnText.textContent = window.Locale ? window.Locale.t('copied') : '✔️ Copied!';
+            setTimeout(() => {
+                btnText.textContent = window.Locale ? window.Locale.t('copy') : '📋 Copy';
+            }, 2000);
+        } catch (e) {
+            showError('errCopy');
+        }
     });
 
     // --- Translation History ---
