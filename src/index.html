@@ -77,14 +77,33 @@
         </section>
 
         <section id="tab-documents" class="tab-pane" style="display: none;">
-            <div class="drop-zone" id="doc-drop-zone">
-                <div class="drop-msg">Drag & Drop .docx or .txt file here</div>
-                <div class="progress-box" style="display: none;" id="doc-progress-box">
-                     <div class="progress-bar"><div class="progress-fill" id="doc-progress-fill" style="width: 0%"></div></div>
-                     <span id="doc-progress-text">Processing...</span>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; align-items: center; background: #fafafa; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);" data-i18n="docSrcLang">Document Language:</span>
+                <div class="custom-select" id="doc-source-lang-select" style="width: 180px;">
+                    <div class="select-selected">English</div>
+                    <div class="select-items select-hide">
+                        <input type="text" class="select-search" placeholder="Search language...">
+                        <div class="select-options"></div>
+                    </div>
+                </div>
+                <span style="color: var(--text-secondary); margin: 0 10px;">➔</span>
+                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);" data-i18n="docTgtLang">Translate To:</span>
+                <div class="custom-select" id="doc-target-lang-select" style="width: 180px;">
+                    <div class="select-selected">Finnish</div>
+                    <div class="select-items select-hide">
+                        <input type="text" class="select-search" placeholder="Search language...">
+                        <div class="select-options"></div>
+                    </div>
                 </div>
             </div>
-            <div class="streaming-console" id="doc-console" style="display: none;"></div>
+
+            <div class="drop-zone" id="doc-drop-zone">
+               <div class="drop-msg">Drag & Drop Word (.docx) or Text (.txt) Document here</div>
+            </div>
+            <div class="progress-box" id="doc-progress-box" style="display: none; align-items: center; justify-content: center; flex-direction: column;">
+               <div class="streaming-console" id="doc-streaming-console" style="margin-bottom: 20px; width: 100%; text-align: left;"></div>
+               <button class="action-btn" id="doc-reset-btn" style="width: auto;">Reset / Process Another Document</button>
+            </div>
         </section>
 
         <section id="tab-images" class="tab-pane" style="display: none;">

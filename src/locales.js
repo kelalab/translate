@@ -27,7 +27,9 @@ const translations = {
         ocrRunning: "Running OCR...",
         ocrFailed: "OCR failed: ",
         imgSrcLang: "Image Text Language:",
-        imgTgtLang: "Translate To:"
+        imgTgtLang: "Translate To:",
+        docSrcLang: "Document Language:",
+        docTgtLang: "Translate To:"
     },
     fi: {
         title: "Translategemma",
@@ -57,7 +59,9 @@ const translations = {
         ocrRunning: "Tunnistetaan tekstiä...",
         ocrFailed: "Tekstintunnistus epäonnistui: ",
         imgSrcLang: "Kuvan kieli:",
-        imgTgtLang: "Käännä kielelle:"
+        imgTgtLang: "Käännä kielelle:",
+        docSrcLang: "Asiakirjan kieli:",
+        docTgtLang: "Käännä kielelle:"
     },
     sv: {
         title: "Translategemma",
@@ -87,7 +91,9 @@ const translations = {
         ocrRunning: "Kör OCR...",
         ocrFailed: "OCR misslyckades: ",
         imgSrcLang: "Bildens textspråk:",
-        imgTgtLang: "Översätt till:"
+        imgTgtLang: "Översätt till:",
+        docSrcLang: "Dokumentspråk:",
+        docTgtLang: "Översätt till:"
     }
 };
 

@@ -19,6 +19,8 @@
   "license": "ISC",
   "description": "Local offline translator powered by TranslateGemma",
   "dependencies": {
+    "adm-zip": "^0.5.17",
+    "fast-xml-parser": "^5.7.1",
     "languagedetect": "^2.0.0",
     "node-llama-cpp": "^3.18.1",
     "tesseract.js": "^7.0.0"

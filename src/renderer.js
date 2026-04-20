@@ -101,6 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCustomSelect('target-lang-select', 'Finnish');
     setupCustomSelect('image-source-lang-select', 'English');
     setupCustomSelect('image-target-lang-select', 'Finnish', ['Finnish', 'Swedish']);
+    setupCustomSelect('doc-source-lang-select', 'English');
+    setupCustomSelect('doc-target-lang-select', 'Finnish');
 
     // UI Elements
     const apiSettingsBtn = document.getElementById('api-settings-btn');
@@ -285,6 +287,80 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             document.getElementById(btn.dataset.tab).style.display = 'flex';
         });
+    });
+
+    // --- Document Processing Logic ---
+    const docDropZone = document.getElementById('doc-drop-zone');
+    const docProgressBox = document.getElementById('doc-progress-box');
+    const docStreamingConsole = document.getElementById('doc-streaming-console');
+    const docResetBtn = document.getElementById('doc-reset-btn');
+
+    if (window.api && window.api.onDocumentProgress) {
+        window.api.onDocumentProgress((data) => {
+            if (docStreamingConsole) {
+                docStreamingConsole.textContent += data.status + '\n';
+                docStreamingConsole.scrollTop = docStreamingConsole.scrollHeight;
+            }
+        });
+    }
+
+    docDropZone.addEventListener('dragover', (e) => { e.preventDefault(); docDropZone.classList.add('dragover'); });
+    docDropZone.addEventListener('dragleave', () => docDropZone.classList.remove('dragover'));
+    docDropZone.addEventListener('drop', async (e) => {
+        e.preventDefault(); 
+        docDropZone.classList.remove('dragover');
+        
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            if (!file.name.endsWith('.txt') && !file.name.endsWith('.docx')) {
+                return showError("Only .txt and .docx files are supported.");
+            }
+
+            docDropZone.style.display = 'none';
+            docProgressBox.style.display = 'flex';
+            docStreamingConsole.textContent = 'Initializing...\n';
+
+            const sourceWrap = document.getElementById('doc-source-lang-select');
+            const targetWrap = document.getElementById('doc-target-lang-select');
+            const sourceLang = sourceWrap.dataset.trueValue || 'English';
+            const targetLang = targetWrap.dataset.trueValue || 'Finnish';
+
+            const engineSelect = document.getElementById('engine-select');
+            const engineVal = engineSelect.value;
+            const config = { engine: 'local' };
+            if (engineVal.startsWith('api:')) {
+                config.engine = 'api';
+                try {
+                    const decoded = JSON.parse(atob(engineVal.split(':')[1]));
+                    const p = getProviders().find(x => x.id === decoded.providerId);
+                    if (p) { config.endpoint = p.endpoint; config.apiKey = p.apiKey; config.modelName = decoded.model; }
+                } catch(err) {}
+            }
+
+            try {
+                const filePath = window.api.getFilePath ? window.api.getFilePath(file) : file.path;
+                const res = await window.api.processDocument(filePath, sourceLang, targetLang, config);
+                if (res.success) {
+                    docStreamingConsole.textContent += `\n[SUCCESS] Document parsed and assembled! Prompting save dialog...\n`;
+                    const saveRes = await window.api.saveDocumentDialog(res.buffer, res.ext);
+                    if (saveRes.success) {
+                        docStreamingConsole.textContent += `[SAVED] File successfully saved to: ${saveRes.filePath}\n`;
+                    } else {
+                        docStreamingConsole.textContent += `[CANCELED] Save dialog was canceled.\n`;
+                    }
+                } else {
+                    docStreamingConsole.textContent += `\n[ERROR] ${res.error}\n`;
+                }
+            } catch (err) {
+                docStreamingConsole.textContent += `\n[FATAL ERROR] ${err.message}\n`;
+            }
+        }
+    });
+
+    docResetBtn.addEventListener('click', () => {
+        docProgressBox.style.display = 'none';
+        docDropZone.style.display = 'flex';
+        docStreamingConsole.textContent = '';
     });
 
     // --- Image OCR Logic ---
@@ -510,6 +586,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('target-lang-select').reRenderOptions();
             document.getElementById('image-source-lang-select').reRenderOptions();
             document.getElementById('image-target-lang-select').reRenderOptions();
+            document.getElementById('doc-source-lang-select').reRenderOptions();
+            document.getElementById('doc-target-lang-select').reRenderOptions();
         });
     });
 

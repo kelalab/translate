@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const inference = require('./llm/inference');
+const documentParser = require('./documentParser');
 const LanguageDetect = require('languagedetect');
 const lngDetector = new LanguageDetect();
 
@@ -61,4 +62,33 @@ ipcMain.handle('detect-language', async (event, text) => {
         return lang.charAt(0).toUpperCase() + lang.slice(1);
     }
     return null;
+});
+
+ipcMain.handle('process-document', async (event, filePath, sourceLang, targetLang, config) => {
+    try {
+        const result = await documentParser.processDocument(filePath, sourceLang, targetLang, config, (msg) => {
+            event.sender.send('doc-progress', { status: msg });
+        });
+        return { success: true, ...result };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.handle('save-document-dialog', async (event, buffer, defaultExtension) => {
+    const mainWindow = BrowserWindow.fromWebContents(event.sender);
+    const { filePath } = await dialog.showSaveDialog(mainWindow, {
+        title: 'Save Translated Document',
+        defaultPath: 'translated_document' + defaultExtension,
+        filters: [
+            { name: defaultExtension === '.docx' ? 'Word Document' : 'Text File', extensions: [defaultExtension.replace('.', '')] },
+            { name: 'All Files', extensions: ['*'] }
+        ]
+    });
+
+    if (filePath) {
+        require('fs').writeFileSync(filePath, Buffer.from(buffer));
+        return { success: true, filePath };
+    }
+    return { success: false, canceled: true };
 });
