@@ -30,7 +30,7 @@ const translations = {
         imgTgtLang: "Translate To:",
         docSrcLang: "Document Language:",
         docTgtLang: "Translate To:",
-        docDrop: "Drag & Drop Word (.docx) or Text (.txt) Document here",
+        docDrop: "Drag & Drop Word (.docx), PDF (.pdf) or Text (.txt) Document here",
         docReset: "Reset / Process Another Document"
     },
     fi: {
@@ -64,7 +64,7 @@ const translations = {
         imgTgtLang: "Käännä kielelle:",
         docSrcLang: "Asiakirjan kieli:",
         docTgtLang: "Käännä kielelle:",
-        docDrop: "Raahaa Asiakirja (.docx) tai Tekstitiedosto (.txt) tähän",
+        docDrop: "Raahaa Asiakirja (.docx), PDF (.pdf) tai Tekstitiedosto (.txt) tähän",
         docReset: "Nollaa / Käännä toinen asiakirja"
     },
     sv: {
@@ -98,7 +98,7 @@ const translations = {
         imgTgtLang: "Översätt till:",
         docSrcLang: "Dokumentspråk:",
         docTgtLang: "Översätt till:",
-        docDrop: "Dra och släpp Word- (.docx) eller textdokument (.txt) här",
+        docDrop: "Dra och släpp Word- (.docx), PDF (.pdf) eller textdokument (.txt) här",
         docReset: "Återställ / Översätt ett annat dokument"
     }
 };

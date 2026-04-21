@@ -123,11 +123,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const provModelsInput = document.getElementById('prov-models');
 
     let advancedApiEnabled = false;
+    let debugModeEnabled = false;
     let builtInHtml = '';
 
     // Init Logic
     async function initApp() {
         advancedApiEnabled = await window.api.getAdvancedApiFlag();
+        debugModeEnabled = await window.api.getDebugFlag();
         if (advancedApiEnabled) {
             apiSettingsBtn.style.display = 'inline-block';
         }
@@ -295,6 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const docStreamingConsole = document.getElementById('doc-streaming-console');
     const docResetBtn = document.getElementById('doc-reset-btn');
 
+    let currentPdfJobId = 0;
+
     if (window.api && window.api.onDocumentProgress) {
         window.api.onDocumentProgress((data) => {
             if (docStreamingConsole) {
@@ -304,21 +308,148 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    async function processPdfFrontend(file, sourceLang, targetLang, config) {
+        currentPdfJobId++;
+        const thisJobId = currentPdfJobId;
+
+        if (!window.pdfjsLib) {
+            docStreamingConsole.textContent += `\n[FATAL ERROR] PDF.js library failed to load.\n`;
+            return;
+        }
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const numPages = pdfDoc.numPages;
+
+            docStreamingConsole.textContent += `[INFO] Loaded PDF containing ${numPages} page(s).\n`;
+
+            const translatedParagraphs = [];
+            const tessLangMap = { "English": "eng", "Finnish": "fin", "Swedish": "swe", "Spanish": "spa", "French": "fra", "German": "deu", "Italian": "ita", "Portuguese": "por", "Dutch": "nld", "Polish": "pol", "Russian": "rus", "Danish": "dan", "Norwegian": "nor", "Greek": "ell", "Turkish": "tur", "Czech": "ces", "Hungarian": "hun", "Romanian": "ron", "Bulgarian": "bul", "Croatian": "hrv", "Serbian": "srp", "Slovak": "slk", "Slovenian": "slv", "Estonian": "est", "Latvian": "lav", "Lithuanian": "lit", "Ukrainian": "ukr" };
+            const reqLangCode = tessLangMap[sourceLang] || 'eng';
+
+            for (let i = 1; i <= numPages; i++) {
+                if (currentPdfJobId !== thisJobId) {
+                    docStreamingConsole.textContent += `\n[INFO] Processing cancelled by user.\n`;
+                    return;
+                }
+
+                docStreamingConsole.textContent += `\n[Page ${i}/${numPages}] Extracting text...\n`;
+                docStreamingConsole.scrollTop = docStreamingConsole.scrollHeight;
+
+                const page = await pdfDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                let fullText = textContent.items.map(s => s.str).join(' ');
+
+                let isScannedOcr = false;
+                let ocrDataUrl = null;
+
+                if (!fullText || fullText.trim().length < 20) {
+                    isScannedOcr = true;
+                    docStreamingConsole.textContent += `[Page ${i}/${numPages}] Scanning scanned image structure (OCR Fallback)...\n`;
+                    docStreamingConsole.scrollTop = docStreamingConsole.scrollHeight;
+
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    ocrDataUrl = canvas.toDataURL('image/png');
+
+                    if (typeof Tesseract === 'undefined') throw new Error("Tesseract library missing.");
+
+                    const { data: { text } } = await Tesseract.recognize(ocrDataUrl, reqLangCode, {
+                        logger: m => {}
+                    });
+
+                    fullText = text || '';
+                    docStreamingConsole.textContent += `[Page ${i}/${numPages}] OCR Extracted ${fullText.length} characters.\n`;
+                } else {
+                    docStreamingConsole.textContent += `[Page ${i}/${numPages}] Digital text nodes successfully identified.\n`;
+                }
+
+                if (!fullText.trim()) {
+                    translatedParagraphs.push("");
+                    continue;
+                }
+
+                docStreamingConsole.textContent += `[Page ${i}/${numPages}] Dispatching to engine...\n`;
+                docStreamingConsole.scrollTop = docStreamingConsole.scrollHeight;
+
+                const res = await window.api.translateText(sourceLang, targetLang, fullText, config);
+                if (res.success) {
+                    docStreamingConsole.textContent += `> Result: ${res.translatedText.substring(0, 50)}...\n`;
+                    translatedParagraphs.push(res.translatedText);
+                } else {
+                    docStreamingConsole.textContent += `[ERROR]: ${res.error}\n`;
+                    translatedParagraphs.push(fullText);
+                }
+
+                if (debugModeEnabled && isScannedOcr) {
+                    try {
+                        docStreamingConsole.textContent += `[DEBUG] Dispatching OCR pipeline artifacts to debug root...\n`;
+                        await window.api.saveDebugArtifacts({
+                            page: i,
+                            image: ocrDataUrl,
+                            rawText: fullText,
+                            translatedText: res.success ? res.translatedText : null
+                        });
+                    } catch(err) {}
+                }
+            }
+
+            const outStr = translatedParagraphs.join('\n\n--- Page Break ---\n\n');
+            const buffer = new TextEncoder().encode(outStr);
+
+            docStreamingConsole.textContent += `\n[SUCCESS] Document parsed! Prompting save dialog...\n`;
+            docStreamingConsole.scrollTop = docStreamingConsole.scrollHeight;
+
+            const saveRes = await window.api.saveDocumentDialog(buffer, '.txt');
+            if (saveRes.success) {
+                docStreamingConsole.textContent += `[SAVED] File successfully saved to: ${saveRes.filePath}\n`;
+            } else {
+                docStreamingConsole.textContent += `[CANCELED] Save dialog was canceled.\n`;
+            }
+        } catch (e) {
+            docStreamingConsole.textContent += `\n[FATAL ERROR] ${e.message}\n`;
+            console.error(e);
+        }
+    }
+
     docDropZone.addEventListener('dragover', (e) => { e.preventDefault(); docDropZone.classList.add('dragover'); });
     docDropZone.addEventListener('dragleave', () => docDropZone.classList.remove('dragover'));
     docDropZone.addEventListener('drop', async (e) => {
         e.preventDefault(); 
         docDropZone.classList.remove('dragover');
         
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const file = e.dataTransfer.files[0];
-            if (!file.name.endsWith('.txt') && !file.name.endsWith('.docx')) {
-                return showError("Only .txt and .docx files are supported.");
+        if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+        const file = e.dataTransfer.files[0];
+        const fname = file.name.toLowerCase();
+
+        try {
+            // Cancel any ongoing backend tasks
+            if (window.api && window.api.cancelProcessing) window.api.cancelProcessing();
+            currentPdfJobId++;
+
+            // Execute clean local buffer sweep safely with timeout shield
+            try {
+                if (window.api && window.api.resetLlmContext) {
+                    await Promise.race([
+                        window.api.resetLlmContext(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 800))
+                    ]);
+                }
+            } catch (err) { console.warn("IPC Reset Timeout Suppressed:", err); }
+
+            if (!fname.endsWith('.txt') && !fname.endsWith('.docx') && !fname.endsWith('.pdf')) {
+                return showError("Only .txt, .docx, and .pdf files are supported. Found: " + file.name);
             }
 
             docDropZone.style.display = 'none';
-            docProgressBox.style.display = 'flex';
-            docStreamingConsole.textContent = 'Initializing...\n';
+                docProgressBox.style.display = 'flex';
+                docStreamingConsole.textContent = 'Initializing...\n';
 
             const sourceWrap = document.getElementById('doc-source-lang-select');
             const targetWrap = document.getElementById('doc-target-lang-select');
@@ -335,6 +466,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const p = getProviders().find(x => x.id === decoded.providerId);
                     if (p) { config.endpoint = p.endpoint; config.apiKey = p.apiKey; config.modelName = decoded.model; }
                 } catch(err) {}
+            }
+
+            if (file.name.toLowerCase().endsWith('.pdf')) {
+                await processPdfFrontend(file, sourceLang, targetLang, config);
+                return;
             }
 
             try {
@@ -354,10 +490,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 docStreamingConsole.textContent += `\n[FATAL ERROR] ${err.message}\n`;
             }
+        } catch (criticalError) {
+            showError("App failure handling drop: " + criticalError.message);
+            console.error(criticalError);
         }
     });
 
     docResetBtn.addEventListener('click', () => {
+        if (window.api && window.api.cancelProcessing) window.api.cancelProcessing();
+        currentPdfJobId++;
         docProgressBox.style.display = 'none';
         docDropZone.style.display = 'flex';
         docStreamingConsole.textContent = '';
@@ -374,9 +515,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     imageDropZone.addEventListener('dragover', (e) => { e.preventDefault(); imageDropZone.classList.add('dragover'); });
     imageDropZone.addEventListener('dragleave', () => imageDropZone.classList.remove('dragover'));
-    imageDropZone.addEventListener('drop', (e) => {
+    imageDropZone.addEventListener('drop', async (e) => {
         e.preventDefault(); imageDropZone.classList.remove('dragover');
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) processImage(e.dataTransfer.files[0]);
+        
+        if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+        const file = e.dataTransfer.files[0];
+
+        try {
+            if (window.api && window.api.resetLlmContext) {
+                await Promise.race([
+                    window.api.resetLlmContext(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 800))
+                ]);
+            }
+        } catch(err) {}
+
+        processImage(file);
     });
 
     document.addEventListener('paste', (e) => {
@@ -682,4 +836,6 @@ document.addEventListener('DOMContentLoaded', () => {
             historyList.appendChild(wrap);
         });
     }
+
+    initApp();
 });

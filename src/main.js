@@ -45,12 +45,27 @@ ipcMain.handle('get-advanced-api-flag', () => {
     return hasFlag;
 });
 
+ipcMain.handle('get-debug-flag', () => {
+    return process.argv.includes('--debug') || 
+           app.commandLine.hasSwitch('debug') || 
+           process.env.DEBUG === '1';
+});
+
 ipcMain.handle('check-provider', async (event, endpoint, apiKey) => {
     return await inference.checkProvider(endpoint, apiKey);
 });
 
 ipcMain.handle('translate-text', async (event, sourceLang, targetLang, text, config) => {
     return await inference.translateText(sourceLang, targetLang, text, config);
+});
+
+ipcMain.handle('reset-llm-context', async () => {
+    await inference.resetLocalContext();
+    return true;
+});
+
+ipcMain.on('cancel-processing', () => {
+    documentParser.cancelCurrentJob = true;
 });
 
 ipcMain.handle('detect-language', async (event, text) => {
@@ -91,4 +106,30 @@ ipcMain.handle('save-document-dialog', async (event, buffer, defaultExtension) =
         return { success: true, filePath };
     }
     return { success: false, canceled: true };
+});
+
+ipcMain.handle('save-debug-artifacts', async (event, data) => {
+    try {
+        const fs = require('fs');
+        const debugDir = path.join(process.cwd(), 'debug');
+        if (!fs.existsSync(debugDir)) {
+            fs.mkdirSync(debugDir, { recursive: true });
+        }
+
+        const baseFilename = `page_${data.page}`;
+        if (data.image) {
+            const base64Data = data.image.replace(/^data:image\/png;base64,/, "");
+            fs.writeFileSync(path.join(debugDir, `${baseFilename}.png`), base64Data, 'base64');
+        }
+        if (data.rawText) {
+            fs.writeFileSync(path.join(debugDir, `${baseFilename}_raw.txt`), data.rawText, 'utf8');
+        }
+        if (data.translatedText) {
+            fs.writeFileSync(path.join(debugDir, `${baseFilename}_translated.txt`), data.translatedText, 'utf8');
+        }
+
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
 });

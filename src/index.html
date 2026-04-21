@@ -6,6 +6,11 @@
     <title>Translategemma</title>
     <link rel="stylesheet" href="styles/main.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script type="module">
+        import * as pdfjsLib from '../node_modules/pdfjs-dist/build/pdf.min.mjs';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '../node_modules/pdfjs-dist/build/pdf.worker.min.mjs';
+        window.pdfjsLib = pdfjsLib;
+    </script>
 </head>
 <body>
     <div class="app-container">
@@ -98,7 +103,7 @@
             </div>
 
             <div class="drop-zone" id="doc-drop-zone">
-               <div class="drop-msg" data-i18n="docDrop">Drag & Drop Word (.docx) or Text (.txt) Document here</div>
+               <div class="drop-msg" data-i18n="docDrop">Drag & Drop Word (.docx), PDF (.pdf) or Text (.txt) Document here</div>
             </div>
             <div class="progress-box" id="doc-progress-box" style="display: none; align-items: center; justify-content: center; flex-direction: column;">
                <div class="streaming-console" id="doc-streaming-console" style="margin-bottom: 20px; width: 100%; text-align: left;"></div>

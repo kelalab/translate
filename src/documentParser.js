@@ -5,12 +5,15 @@ const { XMLParser, XMLBuilder } = require('fast-xml-parser');
 const { translateText } = require('./llm/inference.js');
 
 class DocumentParser {
-    constructor() {}
+    constructor() {
+        this.cancelCurrentJob = false;
+    }
 
     async processDocument(filePath, sourceLang, targetLang, config, onProgress) {
         const ext = path.extname(filePath).toLowerCase();
         
         onProgress(`Starting to process document: ${path.basename(filePath)}...`);
+        this.cancelCurrentJob = false;
 
         if (ext === '.txt') {
             return await this.processTextFile(filePath, sourceLang, targetLang, config, onProgress);
@@ -28,6 +31,7 @@ class DocumentParser {
         const translatedParagraphs = [];
 
         for (let i = 0; i < paragraphs.length; i++) {
+            if (this.cancelCurrentJob) throw new Error("Job Cancelled by User");
             const p = paragraphs[i].trim();
             if (!p) {
                 translatedParagraphs.push('');
@@ -87,8 +91,10 @@ class DocumentParser {
         };
 
         const translateNodes = async (nodes) => {
+            if (this.cancelCurrentJob) throw new Error("Job Cancelled by User");
             if (!Array.isArray(nodes)) return;
             for (let node of nodes) {
+                if (this.cancelCurrentJob) throw new Error("Job Cancelled by User");
                 Object.keys(node).forEach(k => {
                    if(k.startsWith(':@')) return; // ignore attributes object
                 });

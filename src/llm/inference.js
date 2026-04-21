@@ -7,6 +7,7 @@ let llama = null;
 let model = null;
 let context = null;
 let session = null;
+let isResetting = false;
 let localModelName = null;
 
 async function initLocalModel() {
@@ -168,10 +169,13 @@ async function translateText(sourceLang, targetLang, text, config) {
         }
     } else {
         try {
+            while (isResetting) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+
             const init = await initLocalModel();
             if (!init.success) throw new Error(init.error);
 
-            // Clear memory from the previous translation to stay stateless
             session.setChatHistory([]);
             const response = await session.prompt(prompt);
 
@@ -182,8 +186,22 @@ async function translateText(sourceLang, targetLang, text, config) {
     }
 }
 
+async function resetLocalContext() {
+    if (context && !isResetting) {
+        isResetting = true;
+        try {
+            const nlc = await import('node-llama-cpp');
+            await context.dispose();
+            context = await model.createContext({ contextSize: 2048 });
+            session = new nlc.LlamaChatSession({ contextSequence: context.getSequence() });
+        } catch(e) {}
+        isResetting = false;
+    }
+}
+
 module.exports = {
     initLocalModel,
     checkProvider,
-    translateText
+    translateText,
+    resetLocalContext
 };
