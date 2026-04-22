@@ -1,72 +1,63 @@
 # TranslateGemma
 
-TranslateGemma is a standalone, offline, cross-platform desktop translation application powered by the Google Gemma models (specifically tailored for translation). It leverages `node-llama-cpp` for local inference and provides the alternative option to connect to an external Ollama instance. 
+TranslateGemma is a powerful, offline, and multi-modal desktop translation application. Designed with privacy and performance in mind, it utilizes the local **TranslateGemma 4B** AI model to provide fast, high-quality translations natively on your machine without relying on cloud services. 
 
-Enjoy robust privacy by keeping your data local, fast responses without API costs, and a highly responsive application built using Electron.
+Whether you need to translate simple text snippets, multi-page PDFs with complex formatting, or images containing text, TranslateGemma handles it seamlessly. It also intelligently integrates with local **Ollama** instances and supports custom REST APIs for advanced users.
 
 ## Features
 
-- **Offline Local Translation:** Uses a 4B parameter Translategemma GGUF model via `node-llama-cpp` for fully offline, fast translation in your machine.
-- **Ollama Integration:** Seamlessly connect to a local or networked Ollama instance to use different LLMs.
-- **Language Auto-Detection:** Uses `languagedetect` to predict the source language if needed.
-- **Privacy-First:** Your data never leaves your computer unless you explicitly choose an external network setting.
+- **Local Inference:** 100% offline translations powered by `node-llama-cpp`. Say goodbye to API fees and privacy concerns.
+- **Auto-Language Detection:** Intelligent n-gram language detection algorithm with CJK fast-path regex fallbacks.
+- **Rich Document Parsing (.txt, .pdf, .docx):** Translates large documents paragraph-by-paragraph. Handles scanned PDFs using an embedded OCR fallback mechanism.
+- **Image Translation (OCR):** Tesseract.js integration translates text embedded directly within images using dynamically allocated language packs.
+- **Bi-Directional Text Support:** Elegant LTR and RTL capabilities via HTML5 `dir="auto"`.
+- **Glossary Support:** Built-in dynamic prompt-level terminology preservation (e.g. strict translation strings for specific brand names or terms).
+- **Multilingual Interface:** User interface completely localized into English, Finnish, and Swedish.
+- **OpenAI-Compatible Remote APIs:** Connect your own external REST APIs (Advanced Mode).
 
-## Requirements and Dependencies
+---
 
-### System Requirements
+## Documentation Index
 
-- **OS:** Windows, macOS, or Linux
-- **RAM:** Minimum 8 GB (16 GB recommended for 4B local model inference)
-- **CPU/GPU:** A relatively modern CPU is required. For fast local inference, a supported GPU (Vulkan, CUDA, or Metal) is recommended. The app falls back to Vulkan where applicable.
+Explore the detailed markdown documentation below to master TranslateGemma's architecture, learn how to use its features, and access localized user guides.
 
-### Software Dependencies
+### 📚 Technical Specifications
+- [Technical Architecture & Specifications](docs/tech_spec.md)
+  *Detailed breakdown of the Electron internals, LLM context management, document processing logic, and OCR integrations.*
 
-- [Node.js](https://nodejs.org/) (minimum v18 recommended)
-- `node-llama-cpp` for internal model inference
-- (Optional) [Ollama](https://ollama.com/) if using the Ollama backend
-- (Optional) Build tools corresponding to your OS to compile the local C++ addons inside `node-llama-cpp`
+### 📖 User Guides
+- [English User Guide](docs/user_guide_en.md)
+- [Suomenkielinen Käyttöopas (Finnish)](docs/user_guide_fi.md)
+- [Svensk Användarguide (Swedish)](docs/user_guide_sv.md)
 
-## Installation
+---
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/kelalab/translategemma.git
-   cd translategemma
-   ```
+## Quickstart
 
-2. **Install dependencies:**
+### Prerequisites
+- [Node.js](https://nodejs.org/) (Version 18 or newer recommended)
+- Depending on your OS, you may require build tools to compile `node-llama-cpp` for your specific GPU architecture.
+
+### Installation
+1. Clone the repository and navigate into the `translate` folder.
+2. Install dependencies:
    ```bash
    npm install
    ```
-
-3. **Download Model:**
-   The application expects a GGUF format model inside the `models/` directory for local offline inference. Run the built-in script which downloads or acts as a placeholder for the model:
+3. Download the prerequisite offline models for OCR using the built-in script:
    ```bash
-   node scripts/download_model.js
+   node scripts/download_tesseract_models.js
    ```
-   *(Note: For production, replace the dummy file with a real `translategemma-4b-it-q4_k_m.gguf` model.)*
+4. Start the application:
+   ```bash
+   npm start
+   ```
 
-## Usage (Development)
-
-To run the application locally in development mode:
-
-```bash
-npm start
-```
-
-## Build for Production
-
-You can build an executable installer for your operating system using `electron-builder`:
-
+### Building the Desktop Executable
+TranslateGemma uses electron-builder. To create a standalone installer or executable:
 ```bash
 npm run build
 ```
-This will output a setup executable in the `dist` directory (e.g., `dist/TranslateGemma Setup 1.0.0.exe` on Windows).
 
-## Privacy
-
-Everything runs either locally on this app or via the local API you connect it to (like Ollama). No tracking or cloud APIs are used ensuring your translations remain completely confidential.
-
-## License
-
-ISC License
+---
+*Developed by Antigravity*
