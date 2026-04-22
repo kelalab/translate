@@ -7,7 +7,7 @@ const modelsDir = path.join(__dirname, '../models/tesseract');
 const langs = [
     "eng", "fin", "swe", "spa", "fra", "deu", "ita", "por", "nld", "pol", "rus", "dan",
     "nor", "ell", "tur", "ces", "hun", "ron", "bul", "hrv", "srp", "slk", "slv", "est",
-    "lav", "lit", "ukr"
+    "lav", "lit", "ukr", "chi_sim", "jpn", "ara", "fas", "sqi"
 ];
 
 if (!fs.existsSync(modelsDir)) {

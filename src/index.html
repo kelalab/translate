@@ -49,7 +49,7 @@
                         </div>
                     </div>
                 </div>
-                <textarea id="source-text" placeholder="Enter text to translate..." data-i18n-attr="placeholder:sourcePlace"></textarea>
+                <textarea id="source-text" dir="auto" placeholder="Enter text to translate..." data-i18n-attr="placeholder:sourcePlace"></textarea>
                 <div class="pane-footer">
                     <button class="icon-btn" id="paste-source" title="Paste"><span data-i18n="paste">📋 Paste</span></button>
                     <button class="icon-btn" id="clear-source" title="Clear"><span data-i18n="clear">✖ Clear</span></button>
@@ -73,7 +73,7 @@
                         </div>
                     </div>
                 </div>
-                <textarea id="target-text" placeholder="Translation will appear here..." readonly data-i18n-attr="placeholder:targetPlace"></textarea>
+                <textarea id="target-text" dir="auto" placeholder="Translation will appear here..." readonly data-i18n-attr="placeholder:targetPlace"></textarea>
                 <div class="pane-footer">
                     <button class="icon-btn" id="copy-target" title="Copy"><span id="copy-target-text" data-i18n="copy">📋 Copy</span></button>
                 </div>
@@ -139,7 +139,7 @@
             <div class="translator-grid image-split-view" id="image-split-view" style="display: none; margin-top: 20px;">
                 <div class="pane source-pane">
                     <div class="pane-header"><strong style="padding-left:12px; font-weight: 500; font-size: 0.95rem; line-height: 2.5;" data-i18n="extractedSource">Extracted Source Text</strong></div>
-                    <textarea id="image-source-text" data-i18n-attr="placeholder:ocrRunning"></textarea>
+                    <textarea id="image-source-text" dir="auto" data-i18n-attr="placeholder:ocrRunning"></textarea>
                 </div>
                 <div class="translate-action">
                     <button id="image-translate-btn" class="action-btn">
@@ -149,7 +149,7 @@
                 </div>
                 <div class="pane target-pane">
                     <div class="pane-header"><strong style="padding-left:12px; font-weight: 500; font-size: 0.95rem; line-height: 2.5;" data-i18n="translatedText">Translated Text</strong></div>
-                    <textarea id="image-target-text" readonly data-i18n-attr="placeholder:targetPlace"></textarea>
+                    <textarea id="image-target-text" dir="auto" readonly data-i18n-attr="placeholder:targetPlace"></textarea>
                     <div class="pane-footer">
                         <button class="icon-btn" id="copy-image-target" title="Copy"><span id="copy-image-target-text" data-i18n="copy">📋 Copy</span></button>
                     </div>

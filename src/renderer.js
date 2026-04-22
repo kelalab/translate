@@ -3,8 +3,9 @@ const languages = [
     "Italian", "Portuguese", "Dutch", "Polish", "Russian", "Danish",
     "Norwegian", "Greek", "Turkish", "Czech", "Hungarian", "Romanian",
     "Bulgarian", "Croatian", "Serbian", "Slovak", "Slovenian", "Estonian",
-    "Latvian", "Lithuanian", "Ukrainian"
-].sort();
+    "Latvian", "Lithuanian", "Ukrainian", "Chinese", "Japanese", "Arabic",
+    "Somali", "Dari", "Persian", "Kurdish", "Albanian"
+];
 
 const shortcuts = ["English", "Finnish", "Swedish"];
 
@@ -45,7 +46,13 @@ function setupCustomSelect(selectId, defaultVal, limitLangs = null) {
         }
 
         // Render others
-        languages.forEach(lang => {
+        const sortedLanguages = [...languages].sort((a, b) => {
+            const locA = window.Locale ? window.Locale.tLang(a) : a;
+            const locB = window.Locale ? window.Locale.tLang(b) : b;
+            return locA.localeCompare(locB);
+        });
+
+        sortedLanguages.forEach(lang => {
             if (limitLangs && !limitLangs.includes(lang)) return;
             const locLang = window.Locale ? window.Locale.tLang(lang) : lang;
             if ((lang.toLowerCase().includes(filterText.toLowerCase()) || locLang.toLowerCase().includes(filterText.toLowerCase())) && !shortcuts.includes(lang)) {
@@ -325,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
             docStreamingConsole.textContent += `[INFO] Loaded PDF containing ${numPages} page(s).\n`;
 
             const translatedParagraphs = [];
-            const tessLangMap = { "English": "eng", "Finnish": "fin", "Swedish": "swe", "Spanish": "spa", "French": "fra", "German": "deu", "Italian": "ita", "Portuguese": "por", "Dutch": "nld", "Polish": "pol", "Russian": "rus", "Danish": "dan", "Norwegian": "nor", "Greek": "ell", "Turkish": "tur", "Czech": "ces", "Hungarian": "hun", "Romanian": "ron", "Bulgarian": "bul", "Croatian": "hrv", "Serbian": "srp", "Slovak": "slk", "Slovenian": "slv", "Estonian": "est", "Latvian": "lav", "Lithuanian": "lit", "Ukrainian": "ukr" };
+            const tessLangMap = { "English": "eng", "Finnish": "fin", "Swedish": "swe", "Spanish": "spa", "French": "fra", "German": "deu", "Italian": "ita", "Portuguese": "por", "Dutch": "nld", "Polish": "pol", "Russian": "rus", "Danish": "dan", "Norwegian": "nor", "Greek": "ell", "Turkish": "tur", "Czech": "ces", "Hungarian": "hun", "Romanian": "ron", "Bulgarian": "bul", "Croatian": "hrv", "Serbian": "srp", "Slovak": "slk", "Slovenian": "slv", "Estonian": "est", "Latvian": "lav", "Lithuanian": "lit", "Ukrainian": "ukr", "Chinese": "chi_sim", "Japanese": "jpn", "Arabic": "ara", "Somali": "eng", "Dari": "fas", "Persian": "fas", "Kurdish": "tur", "Albanian": "sqi" };
             const reqLangCode = tessLangMap[sourceLang] || 'eng';
 
             for (let i = 1; i <= numPages; i++) {
@@ -558,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Determine Tesseract language code from Image Source dropdown
             const sourceWrap = document.getElementById('image-source-lang-select');
             const sourceLang = sourceWrap.dataset.trueValue || 'English';
-            const tessLangMap = { "English": "eng", "Finnish": "fin", "Swedish": "swe", "Spanish": "spa", "French": "fra", "German": "deu", "Italian": "ita", "Portuguese": "por", "Dutch": "nld", "Polish": "pol", "Russian": "rus", "Danish": "dan", "Norwegian": "nor", "Greek": "ell", "Turkish": "tur", "Czech": "ces", "Hungarian": "hun", "Romanian": "ron", "Bulgarian": "bul", "Croatian": "hrv", "Serbian": "srp", "Slovak": "slk", "Slovenian": "slv", "Estonian": "est", "Latvian": "lav", "Lithuanian": "lit", "Ukrainian": "ukr" };
+            const tessLangMap = { "English": "eng", "Finnish": "fin", "Swedish": "swe", "Spanish": "spa", "French": "fra", "German": "deu", "Italian": "ita", "Portuguese": "por", "Dutch": "nld", "Polish": "pol", "Russian": "rus", "Danish": "dan", "Norwegian": "nor", "Greek": "ell", "Turkish": "tur", "Czech": "ces", "Hungarian": "hun", "Romanian": "ron", "Bulgarian": "bul", "Croatian": "hrv", "Serbian": "srp", "Slovak": "slk", "Slovenian": "slv", "Estonian": "est", "Latvian": "lav", "Lithuanian": "lit", "Ukrainian": "ukr", "Chinese": "chi_sim", "Japanese": "jpn", "Arabic": "ara", "Somali": "eng", "Dari": "fas", "Persian": "fas", "Kurdish": "tur", "Albanian": "sqi" };
             const tLang = tessLangMap[sourceLang] || "eng";
 
             const { data: { text } } = await Tesseract.recognize(currentImageDataUrl, tLang, {

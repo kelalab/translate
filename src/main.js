@@ -70,6 +70,20 @@ ipcMain.on('cancel-processing', () => {
 
 ipcMain.handle('detect-language', async (event, text) => {
     if (!text || text.trim().length < 2) return null;
+
+    // Fast-path regex checks for languages not supported by `languagedetect` like CJK
+    if (text.match(/[\u3040-\u309f\u30a0-\u30ff]/)) return "Japanese"; // Hiragana/Katakana
+    if (text.match(/[\u4e00-\u9faf]/)) return "Chinese"; // CJK Unified Ideographs
+    if (text.match(/[\u0600-\u06ff]/) && !text.match(/[a-zA-Z]/)) {
+        // Simple fallback for Arabic/Persian scripts if languagedetect fails
+        const results = lngDetector.detect(text, 1);
+        if (results && results.length > 0) {
+            const lang = results[0][0];
+            return lang.charAt(0).toUpperCase() + lang.slice(1);
+        }
+        return "Persian"; // Fallback to Persian if not recognized as Arabic
+    }
+
     const results = lngDetector.detect(text, 1);
     if (results && results.length > 0) {
         const lang = results[0][0];

@@ -130,7 +130,15 @@ const languageNames = {
     "Estonian": { en: "Estonian", fi: "Viro", sv: "Estniska" },
     "Latvian": { en: "Latvian", fi: "Latvia", sv: "Lettiska" },
     "Lithuanian": { en: "Lithuanian", fi: "Liettua", sv: "Litauiska" },
-    "Ukrainian": { en: "Ukrainian", fi: "Ukraina", sv: "Ukrainska" }
+    "Ukrainian": { en: "Ukrainian", fi: "Ukraina", sv: "Ukrainska" },
+    "Chinese": { en: "Chinese", fi: "Kiina", sv: "Kinesiska" },
+    "Japanese": { en: "Japanese", fi: "Japani", sv: "Japanska" },
+    "Arabic": { en: "Arabic", fi: "Arabia", sv: "Arabiska" },
+    "Somali": { en: "Somali", fi: "Somali", sv: "Somaliska" },
+    "Dari": { en: "Dari", fi: "Dari", sv: "Dari" },
+    "Persian": { en: "Persian", fi: "Persia", sv: "Persiska" },
+    "Kurdish": { en: "Kurdish", fi: "Kurdi", sv: "Kurdiska" },
+    "Albanian": { en: "Albanian", fi: "Albania", sv: "Albanska" }
 };
 
 let currentLang = 'en';
