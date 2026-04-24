@@ -6,7 +6,7 @@ Tervetuloa TranslateGemman pariin! Tämä monipuolinen, täysin offline-tilassa 
 
 ## 1. Sovelluksen Käyttöliittymä
 
-Kun käynnistät ohjelman, näet kolme päävälilehteä: **Teksti (Text)**, **Asiakirjat (Documents)**, ja **Kuvat (Images)**.
+Kun käynnistät ohjelman, näet neljä päävälilehteä: **Teksti (Text)**, **Asiakirjat (Documents)**, **Kuvat (Images)**, ja **Puhe (Speech)**.
 
 - **Kieliasetukset (Language Settings)**: Käytä käyttöliittymän pudotusvalikoita valitaksesi Lähdekielen (Source) ja Kohdekielen (Target). Voit vierittää listaa tai käyttää hakukenttää löytääksesi haluamasi kielen nopeasti.
 - **Käyttöliittymän kieli (UI Localization)**: Sovellusikkunan oikeasta yläkulmasta voit vaihtaa sovelluksen kieltä: `EN` (Englanti), `FI` (Suomi) tai `SV` (Ruotsi). Tämä päivittää välittömästi kaikki painikkeet ja valikot, ja järjestää listojen kielet automaattisesti aakkosjärjestykseen valitun kielen mukaisesti.
@@ -20,7 +20,7 @@ Käännä tavallisia tekstikappaleita välittömästi.
 1. **Automaattinen tunnistus (Auto-Detect)**: Liitä (Paste) tekstiä suoraan vasemmanpuoleiseen laatikkoon. Odota hetki, niin TranslateGemma tunnistaa kielen automaattisesti (tunnistaen ranskasta japanin ja arabian kieliin) ja päivittää lähdekielen valikon!
 2. **Oikealta vasemmalle (RTL)**: Jos kirjoitat tai liität oikealta vasemmalle kirjoitettavaa kieltä kuten arabiaa tai persiaa, tekstikenttä mukautuu automaattisesti lukusuunnan mukaiseksi.
 3. **Käännä (Execute)**: Paina **"Käännä (Translate)"** -painiketta. Käännös tuotetaan oikeanpuoleiseen kenttään, josta voit vaivattomasti kopioida sen.
-4. **Historia (History Drawer)**: Sovelluksen alaosasta voit avata "Käännöshistoria (Translation History)" -valikon selataksesi viimeistä 20 tekstikäännöstäsi.
+4. **Historia (History Drawer)**: Sovelluksen alaosasta voit avata "Käännöshistoria (Translation History)" -valikon selataksesi viimeistä 20 tekstikäännöstäsi. Huom: Historia-valikko piilotetaan automaattisesti Puhe- ja Asiakirjat-välilehdillä tilan säästämiseksi.
 
 ---
 
@@ -46,7 +46,20 @@ Irrota ja käännä tekstiä suoraan kuvatiedostoista.
 
 ---
 
-## 5. Eksperttitoiminnot: Ulkoiset API-rajapinnat
+## 5. Puhekäännös-tila (Kokeellinen / Experimental)
+
+Keskustele reaaliajassa paikallisen puhe-puhe-tekoälyn avulla.
+
+1. **Asetukset**: Valitse **"Oma kieli"** (esim. suomi) ja **"Asiakkaan kieli"** (esim. arabia).
+2. **Vuorovaikutus**:
+   - Pidä pohjassa **"Sinä"**-painiketta puhuessasi. Sovellus litteroi puheesi tekstiksi, kääntää sen ja toistaa käännöksen ääneen välittömästi.
+   - Pidä pohjassa **"Asiakas"**-painiketta, kun toinen osapuoli puhuu. Sovellus kääntää puheen takaisin sinun kielellesi ja näyttää sen ruudulla.
+3. **Puhesynteesi (TTS)**: Piper- ja Sherpa-moottorit tuottavat nopean offline-äänen. Harvinaisemmille kielille, kuten somalille tai albanialle, puhesynteesi on kokeellinen ja vaatii erillisten kielimallien lataamisen.
+4. **LLM-vaatimukset**: Monimutkaisille kielille (kuten somali) suositellaan riittävän suuren kielimallin (kuten Gemma 9B Ollaman kautta) käyttöä tarkkuuden varmistamiseksi.
+
+---
+
+## 6. Eksperttitoiminnot: Ulkoiset API-rajapinnat
 
 Voit ohjata käännöspyyntösi myös mukautetuille ulkoisille palvelimille laitteen sisäänrakennetun *TranslateGemma 4B* -mallin sijaista.
 

@@ -2,8 +2,12 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const inference = require('./llm/inference');
 const documentParser = require('./documentParser');
+const { transcribeAudio } = require('./audio/sttService');
+const { generateSpeech } = require('./audio/ttsService');
 const LanguageDetect = require('languagedetect');
 const lngDetector = new LanguageDetect();
+const logger = require('./logger');
+
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -18,22 +22,51 @@ function createWindow() {
     });
 
     mainWindow.loadFile('src/index.html');
+    logger.info('MAIN', 'Window created and index.html loaded.');
+
+
+    
+    // Catch renderer process crashes
+    mainWindow.webContents.on('render-process-gone', (event, details) => {
+        logger.error('CRASH', `Renderer process gone: ${details.reason} (exit code: ${details.exitCode})`);
+    });
 }
 
+
+
 app.whenReady().then(() => {
+    logger.info('MAIN', 'Application ready. Creating window...');
     createWindow();
 
     app.on('activate', function () {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        if (BrowserWindow.getAllWindows().length === 0) {
+            logger.info('MAIN', 'App activated, creating new window.');
+            createWindow();
+        }
     });
 });
 
 app.on('window-all-closed', function () {
-    if (process.platform !== 'darwin') app.quit();
+    logger.info('MAIN', 'All windows closed.');
+    if (process.platform !== 'darwin') {
+        logger.info('MAIN', 'Quitting application.');
+        app.quit();
+    }
 });
 
+
 // Register IPC handlers
+ipcMain.handle('log-to-file', (event, category, message, level = 'INFO') => {
+    if (level === 'ERROR') logger.error(category, message);
+    else if (level === 'WARN') logger.warn(category, message);
+    else if (level === 'DEBUG') logger.debug(category, message);
+    else logger.info(category, message);
+});
+
+
+
 ipcMain.handle('get-local-model-status', async () => {
+
     return await inference.initLocalModel();
 });
 
@@ -46,10 +79,11 @@ ipcMain.handle('get-advanced-api-flag', () => {
 });
 
 ipcMain.handle('get-debug-flag', () => {
-    return process.argv.includes('--debug') || 
-           app.commandLine.hasSwitch('debug') || 
+    return process.argv.includes('--enable-debug') || 
+           app.commandLine.hasSwitch('enable-debug') || 
            process.env.DEBUG === '1';
 });
+
 
 ipcMain.handle('check-provider', async (event, endpoint, apiKey) => {
     return await inference.checkProvider(endpoint, apiKey);
@@ -57,6 +91,18 @@ ipcMain.handle('check-provider', async (event, endpoint, apiKey) => {
 
 ipcMain.handle('translate-text', async (event, sourceLang, targetLang, text, config) => {
     return await inference.translateText(sourceLang, targetLang, text, config);
+});
+
+ipcMain.handle('summarize-conversation', async (event, conversationLog, targetLang, config) => {
+    return await inference.summarizeConversation(conversationLog, targetLang, config);
+});
+
+ipcMain.handle('transcribe-audio', async (event, audioBuffer, sourceLang) => {
+    return await transcribeAudio(audioBuffer, sourceLang);
+});
+
+ipcMain.handle('generate-speech', async (event, text, targetLang) => {
+    return await generateSpeech(text, targetLang);
 });
 
 ipcMain.handle('reset-llm-context', async () => {

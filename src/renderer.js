@@ -9,6 +9,14 @@ const languages = [
 
 const shortcuts = ["English", "Finnish", "Swedish"];
 
+
+
+
+
+
+
+
+
 function setupCustomSelect(selectId, defaultVal, limitLangs = null) {
     const selectWrap = document.getElementById(selectId);
     const selected = selectWrap.querySelector('.select-selected');
@@ -110,6 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCustomSelect('image-target-lang-select', 'Finnish', ['Finnish', 'Swedish']);
     setupCustomSelect('doc-source-lang-select', 'English');
     setupCustomSelect('doc-target-lang-select', 'Finnish');
+    const speechTargetLangs = ['Arabic', 'Somali', 'Russian', 'Ukrainian', 'Dari', 'Persian', 'Romanian', 'Kurdish', 'Albanian'];
+    setupCustomSelect('speech-source-lang-select', 'English', ['English', 'Finnish', 'Swedish']);
+    setupCustomSelect('speech-target-lang-select', 'Arabic', speechTargetLangs);
 
     // UI Elements
     const apiSettingsBtn = document.getElementById('api-settings-btn');
@@ -134,28 +145,41 @@ document.addEventListener('DOMContentLoaded', () => {
     let builtInHtml = '';
 
     // Init Logic
+    // Init Logic
     async function initApp() {
-        advancedApiEnabled = await window.api.getAdvancedApiFlag();
-        debugModeEnabled = await window.api.getDebugFlag();
-        if (advancedApiEnabled) {
-            apiSettingsBtn.style.display = 'inline-block';
-        }
+        try {
+            logger.info('UI', 'Initializing application components...');
+            advancedApiEnabled = await window.api.getAdvancedApiFlag();
+            debugModeEnabled = await window.api.getDebugFlag();
+            if (advancedApiEnabled) {
+                logger.info('UI', 'Advanced API features enabled.');
+                apiSettingsBtn.style.display = 'inline-block';
+            }
 
-        const local = await window.api.getLocalModelStatus();
-        if (local.success) {
-            builtInHtml = `<option value="local">${local.modelName} (Built-in)</option>`;
-        } else {
-            builtInHtml = `<option value="error" disabled>Built-in Error: ${local.error}</option>`;
-            showError("Built-in model not found. " + local.error);
-        }
+            const local = await window.api.getLocalModelStatus();
+            if (local.success) {
+                logger.info('UI', `Local model found: ${local.modelName}`);
+                builtInHtml = `<option value="local">${local.modelName} (Built-in)</option>`;
+            } else {
+                logger.error('UI', `Local model initialization failure: ${local.error}`);
+                builtInHtml = `<option value="error" disabled>Built-in Error: ${local.error}</option>`;
+                showError("Built-in model not found. " + local.error);
+            }
 
-        checkProviders();
-        setInterval(checkProviders, 15000); // Check every 15s to be gentle
-        
-        engineSelect.addEventListener('change', () => {
-            translateBtn.disabled = engineSelect.value === 'error';
-        });
+            await checkProviders();
+            setInterval(checkProviders, 15000); // Check every 15s to be gentle
+            
+            engineSelect.addEventListener('change', () => {
+                translateBtn.disabled = engineSelect.value === 'error';
+            });
+            logger.info('UI', 'App initialization complete.');
+        } catch (err) {
+            console.error('Critical initialization error:', err);
+            if (typeof showError === 'function') showError("App failed to initialize: " + err.message);
+        }
     }
+
+
 
     function getProviders() {
         let providers = [];
@@ -291,12 +315,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabPanes = document.querySelectorAll('.tab-pane');
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
+            const tabId = btn.dataset.tab;
+            logger.info('UI', `Switching to tab: ${tabId}`);
             tabBtns.forEach(b => b.classList.remove('active'));
             tabPanes.forEach(p => p.style.display = 'none');
             btn.classList.add('active');
-            document.getElementById(btn.dataset.tab).style.display = 'flex';
+            document.getElementById(tabId).style.display = 'flex';
+
+            // Hide history accordion for Documents and Speech tabs
+            const historyAccordion = document.getElementById('history-accordion');
+            if (tabId === 'tab-documents' || tabId === 'tab-speech') {
+                historyAccordion.style.display = 'none';
+            } else {
+                historyAccordion.style.display = 'block';
+            }
         });
     });
+
 
     // --- Document Processing Logic ---
     const docDropZone = document.getElementById('doc-drop-zone');
@@ -367,11 +402,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (typeof Tesseract === 'undefined') throw new Error("Tesseract library missing.");
 
-                    const { data: { text } } = await Tesseract.recognize(ocrDataUrl, reqLangCode, {
-                        logger: m => {}
-                    });
+                    // Suppress harmless WASM legacy-param warnings for LSTM-only CJK engines
+                    const _origErrPdf = console.error;
+                    console.error = (...a) => { if (String(a[0]).includes('Parameter not found')) return; _origErrPdf.apply(console, a); };
+                    let _ocrText = '';
+                    try {
+                        const { data: { text: _t } } = await Tesseract.recognize(ocrDataUrl, reqLangCode, {
+                            logger: m => {}
+                        });
+                        _ocrText = _t || '';
+                    } finally {
+                        console.error = _origErrPdf;
+                    }
 
-                    fullText = text || '';
+                    fullText = _ocrText;
                     docStreamingConsole.textContent += `[Page ${i}/${numPages}] OCR Extracted ${fullText.length} characters.\n`;
                 } else {
                     docStreamingConsole.textContent += `[Page ${i}/${numPages}] Digital text nodes successfully identified.\n`;
@@ -568,13 +612,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const tessLangMap = { "English": "eng", "Finnish": "fin", "Swedish": "swe", "Spanish": "spa", "French": "fra", "German": "deu", "Italian": "ita", "Portuguese": "por", "Dutch": "nld", "Polish": "pol", "Russian": "rus", "Danish": "dan", "Norwegian": "nor", "Greek": "ell", "Turkish": "tur", "Czech": "ces", "Hungarian": "hun", "Romanian": "ron", "Bulgarian": "bul", "Croatian": "hrv", "Serbian": "srp", "Slovak": "slk", "Slovenian": "slv", "Estonian": "est", "Latvian": "lav", "Lithuanian": "lit", "Ukrainian": "ukr", "Chinese": "chi_sim", "Japanese": "jpn", "Arabic": "ara", "Somali": "eng", "Dari": "fas", "Persian": "fas", "Kurdish": "tur", "Albanian": "sqi" };
             const tLang = tessLangMap[sourceLang] || "eng";
 
-            const { data: { text } } = await Tesseract.recognize(currentImageDataUrl, tLang, {
-                logger: m => {
-                    if(m.status === 'recognizing text') {
-                        imageSourceText.value = `Running OCR... ${Math.round(m.progress * 100)}%`;
+            // Suppress harmless WASM legacy-param warnings for LSTM-only CJK engines
+            const _origErrImg = console.error;
+            console.error = (...a) => { if (String(a[0]).includes('Parameter not found')) return; _origErrImg.apply(console, a); };
+            let _imgText = '';
+            try {
+                const { data: { text: _t } } = await Tesseract.recognize(currentImageDataUrl, tLang, {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            imageSourceText.value = `Running OCR... ${Math.round(m.progress * 100)}%`;
+                        }
                     }
-                }
-            });
+                });
+                _imgText = _t || '';
+            } finally {
+                console.error = _origErrImg;
+            }
+            const text = _imgText;
             imageSourceText.value = text;
             handleAutoDetect(text);
         } catch (err) {
@@ -601,13 +655,16 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     }
 
-    initApp();
+
+
 
     function showError(msg) {
+        logger.error('UI', `Displaying error toast: ${msg}`);
         errorToast.textContent = window.Locale ? (window.Locale.t(msg) || msg) : msg;
         errorToast.classList.add('show');
         setTimeout(() => errorToast.classList.remove('show'), 5000);
     }
+
 
     async function handleAutoDetect(text) {
         if (!text || text.trim().length < 2) return;
@@ -685,6 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.btn-text').style.display = 'none';
         document.querySelector('.btn-spinner').style.display = 'inline-block';
 
+        logger.info('TRANS', `Triggering Text translation request (${config.engine})...`);
         const result = await window.api.translateText(sourceLang, targetLang, sourceText.value, config);
 
         document.querySelector('.btn-text').style.display = 'inline-block';
@@ -692,9 +750,11 @@ document.addEventListener('DOMContentLoaded', () => {
         translateBtn.disabled = false;
 
         if (result.success) {
+            logger.info('TRANS', 'Translation received and rendered.');
             targetText.value = result.translatedText;
             saveHistory(sourceLang, targetLang, sourceText.value, result.translatedText);
         } else {
+            logger.error('TRANS', `Translation failed: ${result.error}`);
             showError(result.error);
         }
     });
@@ -749,6 +809,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('image-target-lang-select').reRenderOptions();
             document.getElementById('doc-source-lang-select').reRenderOptions();
             document.getElementById('doc-target-lang-select').reRenderOptions();
+            document.getElementById('speech-source-lang-select').reRenderOptions();
+            document.getElementById('speech-target-lang-select').reRenderOptions();
         });
     });
 

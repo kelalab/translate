@@ -31,7 +31,27 @@ const translations = {
         docSrcLang: "Document Language:",
         docTgtLang: "Translate To:",
         docDrop: "Drag & Drop Word (.docx), PDF (.pdf) or Text (.txt) Document here",
-        docReset: "Reset / Process Another Document"
+        docReset: "Reset / Process Another Document",
+        tabSpeech: "Speech",
+        experimental: "Experimental",
+        speechUrLang: "Your Language:",
+        speechCustLang: "Customer Language:",
+        speechInst: "Hold a button below to speak",
+        speechYou: "You",
+        speechCust: "Customer",
+        speechListeningYou: "Listening to You...",
+        speechListeningCust: "Listening to Customer...",
+        speechProcessing: "Processing Audio...",
+        speechNoHear: "(Could not hear anything)",
+        speechTranslating: "Translating...",
+        speechGenerating: "Generating Speech...",
+        speechError: "An error occurred during processing.",
+        speechEndSession: "End Discussion",
+        speechSummarizing: "Summarizing session...",
+        speechMemoTitle: "Meeting Memo",
+        speechMemoTopics: "Topics Covered",
+        speechMemoActions: "Action Points",
+        speechMemoClose: "Close"
     },
     fi: {
         title: "Translategemma",
@@ -65,7 +85,27 @@ const translations = {
         docSrcLang: "Asiakirjan kieli:",
         docTgtLang: "Käännä kielelle:",
         docDrop: "Raahaa Asiakirja (.docx), PDF (.pdf) tai Tekstitiedosto (.txt) tähän",
-        docReset: "Nollaa / Käännä toinen asiakirja"
+        docReset: "Nollaa / Käännä toinen asiakirja",
+        tabSpeech: "Puhe",
+        experimental: "Kokeellinen",
+        speechUrLang: "Sinun kielesi:",
+        speechCustLang: "Asiakkaan kieli:",
+        speechInst: "Paina painiketta ja puhu",
+        speechYou: "Sinä",
+        speechCust: "Asiakas",
+        speechListeningYou: "Kuunnellaan sinua...",
+        speechListeningCust: "Kuunnellaan asiakasta...",
+        speechProcessing: "Käsitellään ääntä...",
+        speechNoHear: "(Mitään ei kuulunut)",
+        speechTranslating: "Käännetään...",
+        speechGenerating: "Luodaan puhetta...",
+        speechError: "Käsittelyssä tapahtui virhe.",
+        speechEndSession: "Päätä keskustelu",
+        speechSummarizing: "Tiivistetään keskustelua...",
+        speechMemoTitle: "Tapaamismuistio",
+        speechMemoTopics: "Käsitellyt aiheet",
+        speechMemoActions: "Toimenpiteet",
+        speechMemoClose: "Sulje"
     },
     sv: {
         title: "Translategemma",
@@ -99,7 +139,27 @@ const translations = {
         docSrcLang: "Dokumentspråk:",
         docTgtLang: "Översätt till:",
         docDrop: "Dra och släpp Word- (.docx), PDF (.pdf) eller textdokument (.txt) här",
-        docReset: "Återställ / Översätt ett annat dokument"
+        docReset: "Återställ / Översätt ett annat dokument",
+        tabSpeech: "Tal",
+        experimental: "Experimentell",
+        speechUrLang: "Ditt språk:",
+        speechCustLang: "Kundens språk:",
+        speechInst: "Håll ner knappen och prata",
+        speechYou: "Du",
+        speechCust: "Kund",
+        speechListeningYou: "Lyssna på dig...",
+        speechListeningCust: "Lyssna på kund...",
+        speechProcessing: "Bearbetar ljud...",
+        speechNoHear: "(Kunde inte höra något)",
+        speechTranslating: "Översätter...",
+        speechGenerating: "Genererar tal...",
+        speechError: "Ett fel uppstod vid bearbetningen.",
+        speechEndSession: "Avsluta samtal",
+        speechSummarizing: "Sammanfattar samtal...",
+        speechMemoTitle: "Mötesanteckningar",
+        speechMemoTopics: "Ämnen som behandlats",
+        speechMemoActions: "Åtgärdspunkter",
+        speechMemoClose: "Stäng"
     }
 };
 
@@ -179,14 +239,18 @@ function applyLocalizations() {
     });
 
     // Re-render currently selected languages visually
-    const sl = document.getElementById('source-lang-select');
-    if (sl && sl.dataset.trueValue) {
-        sl.querySelector('.select-selected').textContent = tLang(sl.dataset.trueValue);
-    }
-    const tl = document.getElementById('target-lang-select');
-    if (tl && tl.dataset.trueValue) {
-        tl.querySelector('.select-selected').textContent = tLang(tl.dataset.trueValue);
-    }
+    const selects = [
+        'source-lang-select', 'target-lang-select',
+        'image-source-lang-select', 'image-target-lang-select',
+        'doc-source-lang-select', 'doc-target-lang-select',
+        'speech-source-lang-select', 'speech-target-lang-select'
+    ];
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.dataset.trueValue) {
+            el.querySelector('.select-selected').textContent = tLang(el.dataset.trueValue);
+        }
+    });
 }
 
 // Automatically match system default

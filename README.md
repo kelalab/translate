@@ -10,10 +10,12 @@ Whether you need to translate simple text snippets, multi-page PDFs with complex
 - **Auto-Language Detection:** Intelligent n-gram language detection algorithm with CJK fast-path regex fallbacks.
 - **Rich Document Parsing (.txt, .pdf, .docx):** Translates large documents paragraph-by-paragraph. Handles scanned PDFs using an embedded OCR fallback mechanism.
 - **Image Translation (OCR):** Tesseract.js integration translates text embedded directly within images using dynamically allocated language packs.
+- **Experimental Speech Translation:** Real-time speech-to-speech translation using `Whisper.cpp`, `Piper`, and `Sherpa-ONNX (Meta MMS)`. Supports over 10 languages with offline TTS output.
 - **Bi-Directional Text Support:** Elegant LTR and RTL capabilities via HTML5 `dir="auto"`.
 - **Glossary Support:** Built-in dynamic prompt-level terminology preservation (e.g. strict translation strings for specific brand names or terms).
 - **Multilingual Interface:** User interface completely localized into English, Finnish, and Swedish.
 - **OpenAI-Compatible Remote APIs:** Connect your own external REST APIs (Advanced Mode).
+- **Session Summaries (BETA):** Automatically compile speech transcripts into customer service meeting memos using the local LLM.
 
 ---
 
@@ -23,12 +25,15 @@ Explore the detailed markdown documentation below to master TranslateGemma's arc
 
 ### 📚 Technical Specifications
 - [Technical Architecture & Specifications](docs/tech_spec.md)
-  *Detailed breakdown of the Electron internals, LLM context management, document processing logic, and OCR integrations.*
+  *Detailed breakdown of the Electron internals, LLM context management, document processing logic, Speech-to-Speech pipeline, and OCR integrations.*
 
 ### 📖 User Guides
 - [English User Guide](docs/user_guide_en.md)
 - [Suomenkielinen Käyttöopas (Finnish)](docs/user_guide_fi.md)
 - [Svensk Användarguide (Swedish)](docs/user_guide_sv.md)
+
+### ⚖️ Licensing & Legal
+- [License Audit & Component Attribution](docs/license_audit.md)
 
 ---
 
@@ -44,9 +49,10 @@ Explore the detailed markdown documentation below to master TranslateGemma's arc
    ```bash
    npm install
    ```
-3. Download the prerequisite offline models for OCR using the built-in script:
+3. Download the prerequisite offline models for OCR and Speech:
    ```bash
    node scripts/download_tesseract_models.js
+   node scripts/download_voice_models.js
    ```
 4. Start the application:
    ```bash

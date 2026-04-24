@@ -35,6 +35,10 @@
             <button class="main-tab-btn active" data-tab="tab-text" data-i18n="tabText">Text</button>
             <button class="main-tab-btn" data-tab="tab-documents" data-i18n="tabDoc">Documents</button>
             <button class="main-tab-btn" data-tab="tab-images" data-i18n="tabImg">Images</button>
+            <button class="main-tab-btn" data-tab="tab-speech" style="display: flex; align-items: center; gap: 6px;">
+                <span data-i18n="tabSpeech">Speech</span>
+                <span style="font-size: 0.65rem; background: #eee; color: #666; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; border: 1px solid #ddd;" data-i18n="experimental">Experimental</span>
+            </button>
         </nav>
 
         <section id="tab-text" class="tab-pane active">
@@ -79,6 +83,51 @@
                 </div>
             </div>
         </main>
+        </section>
+
+        <section id="tab-speech" class="tab-pane" style="display: none;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; align-items: center; background: #fafafa; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);" data-i18n="speechUrLang">Your Language:</span>
+                <div class="custom-select" id="speech-source-lang-select" style="width: 180px;">
+                    <div class="select-selected">English</div>
+                    <div class="select-items select-hide">
+                        <input type="text" class="select-search" placeholder="Search language...">
+                        <div class="select-options"></div>
+                    </div>
+                </div>
+                <span style="color: var(--text-secondary); margin: 0 10px;">➔</span>
+                <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);" data-i18n="speechCustLang">Customer Language:</span>
+                <div class="custom-select" id="speech-target-lang-select" style="width: 180px;">
+                    <div class="select-selected">Finnish</div>
+                    <div class="select-items select-hide">
+                        <input type="text" class="select-search" placeholder="Search language...">
+                        <div class="select-options"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="voice-ui" style="display: flex; flex-direction: column; gap: 20px; align-items: center;">
+                <div class="voice-card" id="speech-status-display" style="width: 100%; max-width: 600px; min-height: 200px; height: auto; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; overflow-y: auto; text-align: center; font-size: 1.1rem; color: var(--text-primary); display: flex; align-items: center; justify-content: center; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    <div id="speech-instruction" data-i18n="speechInst">Hold a button below to speak</div>
+                    <div id="speech-spinner" class="btn-spinner" style="display: none; color: var(--primary-color);">↻</div>
+                    <div id="speech-transcript" style="font-weight: 500; margin-top: 10px; font-size: 1rem; color: var(--text-secondary); display: none; opacity: 0.8;"></div>
+                    <div id="speech-translation" style="margin-top: 15px; color: var(--accent-color); font-size: 2.2rem; font-weight: 600; line-height: 1.2; display: none;"></div>
+                </div>
+
+                <div class="voice-controls" style="display: flex; gap: 40px;">
+                    <button class="voice-btn" id="btn-record-source">
+                        <span>🎤</span>
+                        <span id="label-record-source" data-i18n="speechYou">You</span>
+                    </button>
+                    <button class="voice-btn" id="btn-record-target">
+                        <span>🎤</span>
+                        <span id="label-record-target" data-i18n="speechCust">Customer</span>
+                    </button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button id="btn-end-session" class="action-btn" style="background: var(--text-secondary); padding: 8px 24px; font-size: 0.9rem;" data-i18n="speechEndSession">End Discussion</button>
+                </div>
+            </div>
         </section>
 
         <section id="tab-documents" class="tab-pane" style="display: none;">
@@ -191,9 +240,37 @@
                 </div>
             </div>
         </div>
+        <div id="memo-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 950px; width: 95%;">
+                <div class="modal-header">
+                    <h2 data-i18n="speechMemoTitle">Meeting Memo</h2>
+                    <button id="close-memo" class="icon-btn">✖</button>
+                </div>
+                <div class="modal-body" style="display: flex; gap: 20px; max-height: 60vh; overflow-y: auto; padding: 20px;">
+                    <div style="flex: 1; padding: 15px; background: #fdfdfd; border: 1px solid #eee; border-radius: 8px; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 id="memo-lang-csr" style="margin: 0; color: var(--primary-color); font-size: 0.9rem; text-transform: uppercase;">CSR Language</h3>
+                            <button id="btn-copy-memo-csr" class="icon-btn" style="font-size: 0.8rem; opacity: 0.7;">📋 Copy</button>
+                        </div>
+                        <div id="memo-content-csr" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5;"></div>
+                    </div>
+                    <div style="flex: 1; padding: 15px; background: #fdfdfd; border: 1px solid #eee; border-radius: 8px; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 id="memo-lang-cust" style="margin: 0; color: var(--primary-color); font-size: 0.9rem; text-transform: uppercase;">Customer Language</h3>
+                            <button id="btn-copy-memo-cust" class="icon-btn" style="font-size: 0.8rem; opacity: 0.7;">📋 Copy</button>
+                        </div>
+                        <div id="memo-content-cust" style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding: 15px; text-align: right; border-top: 1px solid #eee;">
+                    <button id="btn-close-memo-bottom" class="action-btn" style="width: auto; padding: 8px 24px;" data-i18n="speechMemoClose">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="../node_modules/tesseract.js/dist/tesseract.min.js"></script>
     <script src="locales.js"></script>
+    <script src="voiceUI.js"></script>
     <script src="renderer.js"></script>
 </body>
 </html>

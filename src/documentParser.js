@@ -3,6 +3,8 @@ const path = require('path');
 const AdmZip = require('adm-zip');
 const { XMLParser, XMLBuilder } = require('fast-xml-parser');
 const { translateText } = require('./llm/inference.js');
+const logger = require('./logger');
+
 
 class DocumentParser {
     constructor() {
@@ -11,8 +13,10 @@ class DocumentParser {
 
     async processDocument(filePath, sourceLang, targetLang, config, onProgress) {
         const ext = path.extname(filePath).toLowerCase();
+        const filename = path.basename(filePath);
         
-        onProgress(`Starting to process document: ${path.basename(filePath)}...`);
+        logger.info('DOC', `Processing document: ${filename} (Format: ${ext})`);
+        onProgress(`Starting to process document: ${filename}...`);
         this.cancelCurrentJob = false;
 
         if (ext === '.txt') {
@@ -20,15 +24,19 @@ class DocumentParser {
         } else if (ext === '.docx') {
             return await this.processWordDoc(filePath, sourceLang, targetLang, config, onProgress);
         } else {
+            logger.error('DOC', `Unsupported file type: ${ext}`);
             throw new Error('Unsupported file type. Only .txt and .docx are supported.');
         }
     }
+
 
     async processTextFile(filePath, sourceLang, targetLang, config, onProgress) {
         const content = fs.readFileSync(filePath, 'utf-8');
         // Split by paragraph blocks (double newline)
         const paragraphs = content.split(/\n\s*\n/);
+        logger.info('DOC', `Text file loaded: ${paragraphs.length} paragraphs identified.`);
         const translatedParagraphs = [];
+
 
         for (let i = 0; i < paragraphs.length; i++) {
             if (this.cancelCurrentJob) throw new Error("Job Cancelled by User");
@@ -45,9 +53,11 @@ class DocumentParser {
                     onProgress(`> Result: ${res.translatedText}`);
                     translatedParagraphs.push(res.translatedText);
                 } else {
+                    logger.error('DOC', `Section translation failed: ${res.error}`);
                     onProgress(`[ERROR]: ${res.error}`);
                     translatedParagraphs.push(p); // Fallback to original
                 }
+
             } catch (e) {
                 onProgress(`[ERROR]: ${e.message}`);
                 translatedParagraphs.push(p);
@@ -63,7 +73,11 @@ class DocumentParser {
         const zipEntries = zip.getEntries();
         
         const docEntry = zipEntries.find(e => e.entryName === "word/document.xml");
-        if (!docEntry) throw new Error("Invalid .docx file structure.");
+        if (!docEntry) {
+            logger.error('DOC', 'Invalid .docx: missing word/document.xml');
+            throw new Error("Invalid .docx file structure.");
+        }
+
 
         const xmlData = docEntry.getData().toString("utf8");
 
@@ -154,12 +168,15 @@ class DocumentParser {
                                     }
                                 }
                             } else {
+                                logger.error('DOC', `Chunk translation failed: ${res.error}`);
                                 onProgress(`[ERROR]: ${res.error}`);
                             }
                         } catch (e) {
+                            logger.error('DOC', `Exception during chunk translation: ${e.message}`);
                             onProgress(`[ERROR]: ${e.message}`);
                         }
                     }
+
                 } else if (Array.isArray(node[key])) {
                     await translateNodes(node[key]);
                 }
@@ -173,8 +190,10 @@ class DocumentParser {
         onProgress(`Finished translating document blocks. Re-compiling OpenXML structure...`);
         const newXmlData = builder.build(docObj);
         
+        logger.info('DOC', 'Document re-compiled. Updating ZIP structure.');
         zip.updateFile("word/document.xml", Buffer.from(newXmlData, "utf8"));
         return { buffer: zip.toBuffer(), ext: '.docx' };
+
     }
 }
 

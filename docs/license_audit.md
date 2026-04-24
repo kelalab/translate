@@ -16,7 +16,20 @@ The backend node libraries powering inference and data parsing predominantly use
 - **`fast-xml-parser`**: MIT License (Used to traverse the unzipped internal docx DOM).
 - **`languagedetect`**: MIT License (Performs n-gram character mappings for language auto-detection).
 
-## The Local AI Model
-- **TranslateGemma 4B**: The underlying foundation model is released under the **Gemma License**.
-  - *Context*: Gemma models (by Google) are "open-weights" models. This means you are legally allowed to download, modify, run commercially, and redistribute the models. 
-  - *Caveat*: The Gemma License is a tailored license designed to enforce responsible AI usage. It requires agreeing to specific terms that explicitly forbid utilizing the model for malicious purposes, harassment, or generating illegal content. For this reason, it is distinct from classical OSI-approved permissive licenses like MIT or GPL, but is free for standard developer and commercial usage.
+## Speech & Audio Components
+
+TranslateGemma's real-time speech translation pipeline utilizes several specialized engines:
+- **`whisper.cpp`**: MIT License (Highly optimized C++ port of OpenAI's Whisper model).
+- **`Piper`**: MIT License (Fast, local neural text-to-speech engine).
+- **`Sherpa-ONNX`**: Apache License 2.0 (High-performance speech synthesis and recognition framework).
+
+## Machine Learning Models
+
+### Large Language Model
+- **TranslateGemma 4B**: Released under the **Gemma License**. This is an "open-weights" license by Google which permits commercial use and redistribution while enforcing responsible AI usage policies.
+
+### Speech Models
+- **Whisper Models**: Released under the **MIT License** (by OpenAI).
+- **Piper Voices**: Most voices are licensed under **Creative Commons Attribution 4.0 (CC BY 4.0)** or **MIT**, depending on the specific dataset used for training (e.g., LibriTTS, Thorsten).
+- **Meta MMS (Massively Multilingual Speech)**: Released by Meta AI under the **CC-BY-NC 4.0** (Creative Commons Attribution-NonCommercial 4.0 International) for the model weights. 
+  - *Important Note*: The Meta MMS models included for low-resource languages (Somali, Albanian) are intended for non-commercial evaluation and customer service research purposes within this application.

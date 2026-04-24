@@ -55,3 +55,25 @@ The `detect-language` IPC channel analyzes clipboard/input strings.
 
 ### Bi-Directional Layouts (RTL)
 The renderer interface implements zero-JS semantic BIDI layouts. Input spaces are tagged with `dir="auto"`. Text starting with Right-to-Left scripts (Arabic, Persian, Hebrew) natively snap cursor and alignment directions gracefully.
+
+## 5. Offline Speech Pipeline (`src/audio/`)
+
+TranslateGemma implements a low-latency, modular speech translation pipeline.
+
+### Speech-to-Text (STT) via `Whisper.cpp`
+Transcribing microphone input utilizes a dedicated `sttService.js` binding to a local `whisper-cli.exe` binary.
+- **Audio Capture:** `src/voiceUI.js` captures mono 16kHz audio from the browser's `getUserMedia` API, converting float32 buffers to 16-bit PCM WAV.
+- **Inference:** Uses the Whisper `small` model quantized to 4-bit (GGUF/GGML) for rapid real-time transcription.
+
+### Text-to-Speech (TTS) Engine Routing
+Speech synthesis is handled by `ttsService.js`, which orchestrates two different inference engines based on the target language:
+- **Piper (Fast VITS):** Handles high-resource languages (English, Finnish, Swedish, Arabic, Russian) via streaming `stdin`. This engine provides near-instantaneous latency.
+- **Sherpa-ONNX (Meta MMS):** Handles low-resource or edge languages (Somali, Albanian) using ONNX-quantized models from Meta's Massively Multilingual Speech (MMS) project.
+- **Sanitization:** Implements strict regex-based character filtering (e.g. blocking Cyrillic inputs for Latin TTS models) to prevent engine-level buffer overruns.
+
+## 6. Security & Privacy
+
+As a 100% offline-first application, TranslateGemma adheres to a zero-telemetry policy.
+- **No Cloud Dependencies:** All models (LLM, OCR, STT, TTS) are stored locally in the `models/` directory.
+- **Binary Integrity:** Pre-compiled binaries for Whisper, Piper, and Sherpa-ONNX are managed via local scripts and executed within the application's isolated environment.
+- **Process Isolation:** Use of `child_process.spawn` with strict working directories (`cwd`) prevents path traversal or dependency confusion during inference execution.

@@ -6,7 +6,7 @@ Welcome to TranslateGemma! This multi-modal, offline translation app allows you 
 
 ## 1. Navigating the App
 
-When you launch the app, you will find three primary tabs: **Text**, **Documents**, and **Images**. 
+When you launch the app, you will find four primary tabs: **Text**, **Documents**, **Images**, and **Speech**. 
 
 - **Language Settings**: Use the dropdown menus at the top of a pane to select your Source Language and your Target Language. You can scroll or search for the exact language you need.
 - **UI Localization**: At the top-right corner of the application window, you can toggle the interface language between `EN` (English), `FI` (Finnish), and `SV` (Swedish). Changing this setting will instantly update all buttons, menus, and automatically sort the dropdown language lists alphabetically in the newly selected language. 
@@ -20,7 +20,7 @@ Translate standard text segments instantly.
 1. **Auto-Detect**: Paste text directly into the Source box on the left. Wait a brief second, and TranslateGemma will automatically detect the language (handling everything from French to Japanese and Arabic) and update your source dropdown!
 2. **Right-to-Left (RTL)**: If you type or paste an RTL language like Arabic or Persian, the text field will automatically align to the right to accommodate comfortable typing.
 3. **Execute**: Click the **"Translate"** button. Your translation will stream into the right-hand box. You can easily click **"Copy"** at the bottom right.
-4. **History Drawer**: Expand the "Translation History" tab at the bottom of the app to review your 20 most recent text translations.
+4. **History Drawer**: Expand the "Translation History" tab at the bottom of the app to review your 20 most recent text translations. Note: The history drawer is automatically hidden on the Speech and Document tabs to maximize screen space.
 
 ---
 
@@ -46,7 +46,20 @@ Extract and translate text locked inside image formats.
 
 ---
 
-## 5. Expert Features: External APIs
+## 5. Speech Translation Mode (Experimental)
+
+Engage in real-time bilingual conversations using local speech-to-speech AI.
+
+1. **Setup**: Select **"Your Language"** (e.g. English) and the **"Customer Language"** (e.g. Arabic).
+2. **Interaction**: 
+   - Press and hold the **"You"** button while you speak English. The app will transcribe your speech to text, translate it, and immediately speak the translation out loud.
+   - Press and hold the **"Customer"** button while the other person speaks their language. The app will translate their speech back to you in your language and display it on screen.
+3. **TTS Output**: The speech synthesis engine (Piper/Sherpa) provides high-speed offline audio. For low-resource languages like Somali or Albanian, the audio synthesis is currently experimental and requires specific model downloads.
+4. **LLM Requirements**: For complex languages (e.g. Somali), ensure you are using a sufficiently large LLM (like Gemma 9B via Ollama) to ensure accurate text translation before the speech is generated.
+
+---
+
+## 6. Expert Features: External APIs
 
 While the built-in *TranslateGemma 4B* model is powerful, power users may wish to pass requests through remote custom inference servers or local hardware.
 
