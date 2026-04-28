@@ -33,8 +33,8 @@
   "build": {
     "appId": "com.antigravity.translategemma",
     "files": [
-      "**/*",
-      "!models/**/*"
+      "src/**/*",
+      "package.json"
     ],
     "mac": {
       "category": "public.app-category.productivity"
@@ -42,12 +42,6 @@
     "win": {
       "target": "nsis-web"
     },
-    "publish": [
-      {
-        "provider": "generic",
-        "url": "http://localhost/"
-      }
-    ],
     "nsis": {
       "guid": "com.antigravity.translategemma.v2",
       "oneClick": false,
@@ -60,13 +54,8 @@
       "target": "AppImage"
     },
     "extraResources": [
-      {
-        "from": "models",
-        "to": "models",
-        "filter": [
-          "**/*"
-        ]
-      }
+      "models/**/*",
+      "bin/**/*"
     ]
   }
 }

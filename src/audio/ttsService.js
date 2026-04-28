@@ -3,11 +3,17 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
+const { app } = require('electron');
 const logger = require('../logger');
 
 
-const BIN_DIR = path.join(__dirname, '../../bin');
-const MODELS_DIR = path.join(__dirname, '../../models/voice');
+const isPackaged = app.isPackaged;
+const BIN_DIR = isPackaged
+    ? path.join(process.resourcesPath, 'bin')
+    : path.join(__dirname, '../../bin');
+const MODELS_DIR = isPackaged
+    ? path.join(process.resourcesPath, 'models', 'voice')
+    : path.join(__dirname, '../../models/voice');
 const MMS_MODELS_DIR = path.join(MODELS_DIR, 'mms');
 
 const PIPER_CLI = path.join(BIN_DIR, 'piper', 'piper', 'piper.exe');

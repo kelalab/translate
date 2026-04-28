@@ -7,3 +7,4 @@ models/
 .env
 bin/
 debug/
+scratch2.js

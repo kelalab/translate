@@ -3,11 +3,17 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
+const { app } = require('electron');
 const logger = require('../logger');
 
 
-const BIN_DIR = path.join(__dirname, '../../bin/whisper');
-const MODELS_DIR = path.join(__dirname, '../../models/voice');
+const isPackaged = app.isPackaged;
+const BIN_DIR = isPackaged
+    ? path.join(process.resourcesPath, 'bin', 'whisper')
+    : path.join(__dirname, '../../bin/whisper');
+const MODELS_DIR = isPackaged
+    ? path.join(process.resourcesPath, 'models', 'voice')
+    : path.join(__dirname, '../../models/voice');
 
 // Determine path based on OS. Currently assuming Windows based on architecture setup.
 const WHISPER_CLI = path.join(BIN_DIR, 'Release', 'whisper-cli.exe');
