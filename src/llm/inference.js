@@ -67,7 +67,7 @@ async function initLocalModel() {
         });
         session = new LlamaChatSession({ contextSequence: context.getSequence() });
         localModelName = defaultModel;
-        logger.info('LLM', 'Local model initialized successfully.');
+        logger.info('LLM', `Local model initialized successfully. GPU backend: ${JSON.stringify(llama.gpu)}`);
         return { success: true, modelName: defaultModel };
     } catch (e) {
         logger.error('LLM', `Model initialization failed: ${e.message}`);
@@ -210,7 +210,7 @@ async function translateText(sourceLang, targetLang, text, config) {
             if (!init.success) throw new Error(init.error);
 
             session.setChatHistory([]);
-            const response = await session.prompt(prompt);
+            const response = await session.prompt(prompt, { temperature: 0, topK: 1 });
 
             logger.debug('TRANS', `Local Response: ${response}`);
             return { success: true, translatedText: response.trim() };
@@ -310,7 +310,7 @@ ${h.actions}:
             if (!init.success) throw new Error(init.error);
 
             session.setChatHistory([]);
-            const response = await session.prompt(prompt);
+            const response = await session.prompt(prompt, { temperature: 0, topK: 1 });
 
             logger.debug('SUMM', `Local Response: ${response}`);
             return { success: true, summary: response.trim() };
@@ -319,6 +319,55 @@ ${h.actions}:
             return { success: false, error: e.toString() };
         }
 
+    }
+}
+
+async function translateTextStreaming(sourceLang, targetLang, text, config, onChunk) {
+    let terminologyInstructions = "";
+    const activeRules = [];
+    for (const [baseTerm, translations] of Object.entries(glossary)) {
+        const sourceTerm = translations[sourceLang];
+        const targetTerm = translations[targetLang];
+        if (sourceTerm && targetTerm && text.includes(sourceTerm)) {
+            if (sourceTerm !== targetTerm) {
+                activeRules.push(`- Translate "${sourceTerm}" strictly to "${targetTerm}"`);
+            }
+        }
+    }
+    if (activeRules.length > 0) {
+        terminologyInstructions = "\nIMPORTANT TERMINOLOGY RULES:\n" + activeRules.join("\n") + "\n";
+    }
+
+    const prompt = `You are a professional ${sourceLang} to ${targetLang} translator. Your goal is to accurately convey the meaning and nuances of the original ${sourceLang} text while adhering to ${targetLang} grammar, vocabulary, and cultural sensitivities. Produce only the ${targetLang} translation, without any additional explanations or commentary.${terminologyInstructions}\nPlease translate the following ${sourceLang} text into ${targetLang}: \n\n${text}`;
+
+    logger.info('TRANS', `Requesting streaming translation: ${sourceLang} -> ${targetLang} (${config.engine})`);
+
+    if (config.engine === 'api') {
+        // SSE streaming for API is out of scope — fall back to blocking and deliver as one chunk
+        const result = await translateText(sourceLang, targetLang, text, config);
+        if (result.success) onChunk(result.translatedText);
+        return result;
+    } else {
+        try {
+            while (isResetting) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+            const init = await initLocalModel();
+            if (!init.success) throw new Error(init.error);
+
+            session.setChatHistory([]);
+            const response = await session.prompt(prompt, {
+                onTextChunk: (chunk) => onChunk(chunk),
+                temperature: 0,
+                topK: 1
+            });
+
+            logger.debug('TRANS', `Streaming translation complete: ${response}`);
+            return { success: true, translatedText: response.trim() };
+        } catch (e) {
+            logger.error('TRANS', `Streaming translation failed: ${e.message}`);
+            return { success: false, error: e.toString() };
+        }
     }
 }
 
@@ -344,6 +393,7 @@ module.exports = {
     initLocalModel,
     checkProvider,
     translateText,
+    translateTextStreaming,
     summarizeConversation,
     resetLocalContext
 };

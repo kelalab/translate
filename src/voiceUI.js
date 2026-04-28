@@ -226,7 +226,7 @@ async function stopRecording() {
             const engineSelect = document.getElementById('engine-select');
             const engineVal = engineSelect ? engineSelect.value : 'local';
             const config = { engine: 'local' };
-            
+
             if (engineVal.startsWith('api:')) {
                 config.engine = 'api';
                 try {
@@ -244,32 +244,57 @@ async function stopRecording() {
                 } catch(e) {}
             }
 
-            // 2. Translate
+            // 2. Translate (streaming) + 3. TTS (sentence-level, overlapped with LLM generation)
             logger.info('TRANS', `Translating transcribed text (${llmSourceLang} -> ${llmTargetLang}) using ${config.engine}...`);
-            const translatedMsg = await window.api.translateText(llmSourceLang, llmTargetLang, transcribedText, config);
-            const translatedText = translatedMsg.translatedText || "(Translation Error)";
-
-            logger.info('TRANS', `Translation result: "${translatedText}"`);
             translationEl.style.display = 'block';
+            translationEl.innerText = '';
 
-            translationEl.innerText = translatedText;
+            let sentenceBuffer = '';
+            let ttsQueue = Promise.resolve();
+            const ttsLang = audioTargetLang;
 
-            // 3. TTS
-            instructionEl.innerText = window.Locale ? window.Locale.t('speechGenerating') : 'Generating Speech...';
-            try {
-                logger.info('TTS', `Generating speech for translation (Lang: ${audioTargetLang})`);
-                const ttsWavBuffer = await window.api.generateSpeech(translatedText, audioTargetLang);
-                playWavBlob(ttsWavBuffer);
-            } catch (err) {
-                logger.error('TTS', `TTS failed: ${err.message}`);
-                console.error("TTS generation failed or unsupported language:", err);
+            window.api.onTranslateChunk((chunk) => {
+                translationEl.innerText += chunk;
+                sentenceBuffer += chunk;
+                // Fire TTS for each completed sentence so audio starts before generation finishes
+                if (/[.!?؟。！？]\s*$/.test(sentenceBuffer.trimEnd())) {
+                    const sentence = sentenceBuffer.trim();
+                    sentenceBuffer = '';
+                    if (sentence.length > 3) {
+                        instructionEl.innerText = window.Locale ? window.Locale.t('speechGenerating') : 'Generating Speech...';
+                        ttsQueue = ttsQueue.then(() =>
+                            window.api.generateSpeech(sentence, ttsLang)
+                                .then(buf => playWavBlob(buf))
+                                .catch(err => logger.error('TTS', `Sentence TTS failed: ${err.message}`))
+                        );
+                    }
+                }
+            });
+
+            const translatedMsg = await window.api.translateTextStreaming(llmSourceLang, llmTargetLang, transcribedText, config);
+            window.api.offTranslateChunk();
+
+            // Flush any remaining text that didn't end with sentence-terminal punctuation
+            const remaining = sentenceBuffer.trim();
+            if (remaining.length > 3) {
+                instructionEl.innerText = window.Locale ? window.Locale.t('speechGenerating') : 'Generating Speech...';
+                ttsQueue = ttsQueue.then(() =>
+                    window.api.generateSpeech(remaining, ttsLang)
+                        .then(buf => playWavBlob(buf))
+                        .catch(err => logger.error('TTS', `Flush TTS failed: ${err.message}`))
+                );
             }
 
+            if (!translatedMsg.success) {
+                logger.error('TRANS', `Translation error: ${translatedMsg.error}`);
+                if (!translationEl.innerText) translationEl.innerText = '(Translation Error)';
+            }
+            logger.info('TRANS', `Translation complete: "${translatedMsg.translatedText || ''}"`);
 
             // Log the interaction
-            dialogueLog.push({ 
-                role: role === 'source' ? 'CSR' : 'Customer', 
-                text: transcribedText 
+            dialogueLog.push({
+                role: role === 'source' ? 'CSR' : 'Customer',
+                text: transcribedText
             });
         }
     } catch (e) {
@@ -287,10 +312,14 @@ async function stopRecording() {
 }
 
 function playWavBlob(bufferArray) {
-    const blob = new Blob([bufferArray], { type: 'audio/wav' });
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.play();
+    return new Promise((resolve) => {
+        const blob = new Blob([bufferArray], { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = resolve;
+        audio.onerror = resolve; // don't stall the queue on playback error
+        audio.play().catch(resolve);
+    });
 }
 
 function encodeWAV(samples, sampleRate) {
