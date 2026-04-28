@@ -38,6 +38,9 @@ app.whenReady().then(() => {
     logger.info('MAIN', 'Application ready. Creating window...');
     createWindow();
 
+    // Pre-warm the LLM so the first speech request doesn't pay cold-start cost
+    inference.initLocalModel().catch(e => logger.warn('MAIN', `LLM warmup failed: ${e.message}`));
+
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) {
             logger.info('MAIN', 'App activated, creating new window.');
@@ -91,6 +94,13 @@ ipcMain.handle('check-provider', async (event, endpoint, apiKey) => {
 
 ipcMain.handle('translate-text', async (event, sourceLang, targetLang, text, config) => {
     return await inference.translateText(sourceLang, targetLang, text, config);
+});
+
+ipcMain.handle('translate-text-streaming', async (event, sourceLang, targetLang, text, config) => {
+    return await inference.translateTextStreaming(
+        sourceLang, targetLang, text, config,
+        (chunk) => event.sender.send('translate-chunk', chunk)
+    );
 });
 
 ipcMain.handle('summarize-conversation', async (event, conversationLog, targetLang, config) => {

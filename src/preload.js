@@ -14,6 +14,12 @@ contextBridge.exposeInMainWorld('api', {
     transcribeAudio: (audioBuffer, sourceLang) => ipcRenderer.invoke('transcribe-audio', audioBuffer, sourceLang),
     generateSpeech: (text, targetLang) => ipcRenderer.invoke('generate-speech', text, targetLang),
     translateText: (sourceLang, targetLang, text, config) => ipcRenderer.invoke('translate-text', sourceLang, targetLang, text, config),
+    translateTextStreaming: (sourceLang, targetLang, text, config) => ipcRenderer.invoke('translate-text-streaming', sourceLang, targetLang, text, config),
+    onTranslateChunk: (callback) => {
+        ipcRenderer.removeAllListeners('translate-chunk');
+        ipcRenderer.on('translate-chunk', (_event, chunk) => callback(chunk));
+    },
+    offTranslateChunk: () => ipcRenderer.removeAllListeners('translate-chunk'),
     summarizeConversation: (conversationLog, targetLang, config) => ipcRenderer.invoke('summarize-conversation', conversationLog, targetLang, config),
     detectLanguage: (text) => ipcRenderer.invoke('detect-language', text),
     processDocument: (filePath, sourceLang, targetLang, config) => ipcRenderer.invoke('process-document', filePath, sourceLang, targetLang, config),

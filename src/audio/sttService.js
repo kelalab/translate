@@ -38,7 +38,9 @@ async function transcribeAudio(wavBuffer, sourceLang = 'auto') {
             '-m', WHISPER_MODEL,
             '-f', tempWavPath,
             '-nt',          // no timestamps
-            '-np'           // no prints (suppress progress output)
+            '-np',          // no prints (suppress progress output)
+            '-bs', '1',     // beam size 1 (greedy) — ~30-40% faster for short clips
+            '-bo', '1'      // best-of 1
         ];
 
         // Ensure we pass the language if specified.
