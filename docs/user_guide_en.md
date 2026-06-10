@@ -11,6 +11,9 @@ When you launch the app, you will find four primary tabs: **Text**, **Documents*
 - **Language Settings**: Use the dropdown menus at the top of a pane to select your Source Language and your Target Language. You can scroll or search for the exact language you need.
 - **UI Localization**: At the top-right corner of the application window, you can toggle the interface language between `EN` (English), `FI` (Finnish), and `SV` (Swedish). Changing this setting will instantly update all buttons, menus, and automatically sort the dropdown language lists alphabetically in the newly selected language. 
 
+> [!NOTE]
+> **Performance Optimization**: To keep TranslateGemma running smoothly on older computers, heavy AI components (like the LLM and OCR engines) are not loaded when you open the app. You may notice a slight 1-3 second delay the *very first time* you translate text or process a document as the engine spins up into memory. All subsequent requests in that session will be lightning fast!
+
 ---
 
 ## 2. Text Translation Mode

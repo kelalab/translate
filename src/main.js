@@ -38,9 +38,7 @@ app.whenReady().then(() => {
     logger.info('MAIN', 'Application ready. Creating window...');
     createWindow();
 
-    // Pre-warm the LLM so the first speech request doesn't pay cold-start cost
-    inference.initLocalModel().catch(e => logger.warn('MAIN', `LLM warmup failed: ${e.message}`));
-
+    // Lazy-load LLM: Do NOT pre-warm the LLM so it doesn't consume memory until needed.
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) {
             logger.info('MAIN', 'App activated, creating new window.');
@@ -70,7 +68,7 @@ ipcMain.handle('log-to-file', (event, category, message, level = 'INFO') => {
 
 ipcMain.handle('get-local-model-status', async () => {
 
-    return await inference.initLocalModel();
+    return await inference.checkLocalModel();
 });
 
 ipcMain.handle('get-advanced-api-flag', () => {
@@ -117,6 +115,11 @@ ipcMain.handle('generate-speech', async (event, text, targetLang) => {
 
 ipcMain.handle('reset-llm-context', async () => {
     await inference.resetLocalContext();
+    return true;
+});
+
+ipcMain.handle('dispose-local-model', async () => {
+    await inference.disposeLocalModel();
     return true;
 });
 

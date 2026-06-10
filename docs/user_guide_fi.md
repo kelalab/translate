@@ -11,6 +11,9 @@ Kun käynnistät ohjelman, näet neljä päävälilehteä: **Teksti (Text)**, **
 - **Kieliasetukset (Language Settings)**: Käytä käyttöliittymän pudotusvalikoita valitaksesi Lähdekielen (Source) ja Kohdekielen (Target). Voit vierittää listaa tai käyttää hakukenttää löytääksesi haluamasi kielen nopeasti.
 - **Käyttöliittymän kieli (UI Localization)**: Sovellusikkunan oikeasta yläkulmasta voit vaihtaa sovelluksen kieltä: `EN` (Englanti), `FI` (Suomi) tai `SV` (Ruotsi). Tämä päivittää välittömästi kaikki painikkeet ja valikot, ja järjestää listojen kielet automaattisesti aakkosjärjestykseen valitun kielen mukaisesti.
 
+> [!NOTE]
+> **Suorituskyvyn optimointi**: Jotta TranslateGemma toimisi sujuvasti myös vanhemmilla tietokoneilla, raskaita tekoälykomponentteja (kuten LLM- ja OCR-moottoreita) ei ladata sovellusta avattaessa. Saatat huomata pienen 1-3 sekunnin viiveen *aivan ensimmäisellä kerralla*, kun käännät tekstiä tai käsittelet asiakirjaa, koska moottorit ladataan muistiin vasta silloin. Kaikki myöhemmät pyynnöt samassa istunnossa ovat salamannopeita!
+
 ---
 
 ## 2. Tekstikäännös-tila (Text Translation Mode)

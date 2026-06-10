@@ -8,3 +8,5 @@ models/
 bin/
 debug/
 scratch2.js
+test/test-text-timing.txt
+test/Translategemma palvelinkielimallin käyttöönotto.docx

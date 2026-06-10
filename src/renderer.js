@@ -167,10 +167,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             await checkProviders();
-            setInterval(checkProviders, 15000); // Check every 15s to be gentle
             
             engineSelect.addEventListener('change', () => {
                 translateBtn.disabled = engineSelect.value === 'error';
+                if (engineSelect.value.startsWith('api:')) {
+                    if (window.api && window.api.disposeLocalModel) {
+                        window.api.disposeLocalModel();
+                    }
+                }
             });
             logger.info('UI', 'App initialization complete.');
         } catch (err) {
@@ -186,17 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             providers = JSON.parse(localStorage.getItem('apiProviders') || '[]');
         } catch(e) {}
-
-        // Always implicitly check localhost Ollama first
-        const hasLocalOllama = providers.find(p => p.id === 'default-ollama');
-        if (!hasLocalOllama) {
-            providers.unshift({
-                id: 'default-ollama',
-                name: 'Local Ollama',
-                endpoint: 'http://localhost:11434/v1',
-                apiKey: ''
-            });
-        }
         return providers;
     }
 
@@ -210,8 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let optionsHtml = builtInHtml;
 
         for (const p of providers) {
-            // Only non-default providers require the advanced flag to be visible
-            if (!advancedApiEnabled && p.id !== 'default-ollama') continue;
+            if (!advancedApiEnabled) continue;
 
             const res = await window.api.checkProvider(p.endpoint, p.apiKey);
             if (res.success && res.models && res.models.length > 0) {
@@ -284,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
         providerList.innerHTML = '';
         const p = getProviders();
         p.forEach(prov => {
-            if (prov.id === 'default-ollama') return; // Hide default ollama from list
 
             const div = document.createElement('div');
             div.className = 'provider-item';
@@ -355,8 +346,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const thisJobId = currentPdfJobId;
 
         if (!window.pdfjsLib) {
-            docStreamingConsole.textContent += `\n[FATAL ERROR] PDF.js library failed to load.\n`;
-            return;
+            docStreamingConsole.textContent += `[INFO] Loading PDF.js dynamically...\n`;
+            try {
+                const pdfjs = await import('../node_modules/pdfjs-dist/build/pdf.min.mjs');
+                pdfjs.GlobalWorkerOptions.workerSrc = '../node_modules/pdfjs-dist/build/pdf.worker.min.mjs';
+                window.pdfjsLib = pdfjs;
+            } catch (err) {
+                docStreamingConsole.textContent += `\n[FATAL ERROR] PDF.js library failed to load.\n`;
+                return;
+            }
         }
 
         try {
@@ -400,6 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
                     ocrDataUrl = canvas.toDataURL('image/png');
 
+                    await loadTesseract();
                     if (typeof Tesseract === 'undefined') throw new Error("Tesseract library missing.");
 
                     // Suppress harmless WASM legacy-param warnings for LSTM-only CJK engines
@@ -599,6 +598,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentImageDataUrl = null;
 
+    async function loadTesseract() {
+        if (typeof Tesseract !== 'undefined') return true;
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = "../node_modules/tesseract.js/dist/tesseract.min.js";
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
     async function runOCR() {
         if (!currentImageDataUrl) return;
         
@@ -606,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
         imageTargetText.value = '';
         
         try {
+            await loadTesseract();
             // Determine Tesseract language code from Image Source dropdown
             const sourceWrap = document.getElementById('image-source-lang-select');
             const sourceLang = sourceWrap.dataset.trueValue || 'English';
@@ -741,22 +752,52 @@ document.addEventListener('DOMContentLoaded', () => {
         translateBtn.disabled = true;
         document.querySelector('.btn-text').style.display = 'none';
         document.querySelector('.btn-spinner').style.display = 'inline-block';
+        targetText.value = '';
 
         logger.info('TRANS', `Triggering Text translation request (${config.engine})...`);
-        const result = await window.api.translateText(sourceLang, targetLang, sourceText.value, config);
+        const textToTranslate = sourceText.value;
+        const THRESHOLD = 800;
+
+        try {
+            if (textToTranslate.length > THRESHOLD) {
+                // Chunk the text
+                const chunks = textToTranslate.split(/\n\s*\n/);
+                const paragraphs = chunks.length > 1 ? chunks : textToTranslate.split('\n');
+                
+                let combinedResult = '';
+                const separator = chunks.length > 1 ? '\n\n' : '\n';
+
+                for (let i = 0; i < paragraphs.length; i++) {
+                    const p = paragraphs[i].trim();
+                    if (!p) {
+                        combinedResult += separator;
+                        targetText.value = combinedResult;
+                        continue;
+                    }
+                    
+                    const result = await window.api.translateText(sourceLang, targetLang, p, config);
+                    if (!result.success) throw new Error(result.error);
+                    
+                    combinedResult += result.translatedText + separator;
+                    targetText.value = combinedResult;
+                }
+                saveHistory(sourceLang, targetLang, textToTranslate, combinedResult.trim());
+            } else {
+                // Normal translation
+                const result = await window.api.translateText(sourceLang, targetLang, textToTranslate, config);
+                if (!result.success) throw new Error(result.error);
+                
+                targetText.value = result.translatedText;
+                saveHistory(sourceLang, targetLang, textToTranslate, result.translatedText);
+            }
+        } catch (e) {
+            logger.error('TRANS', `Translation failed: ${e.message}`);
+            showError(e.message);
+        }
 
         document.querySelector('.btn-text').style.display = 'inline-block';
         document.querySelector('.btn-spinner').style.display = 'none';
         translateBtn.disabled = false;
-
-        if (result.success) {
-            logger.info('TRANS', 'Translation received and rendered.');
-            targetText.value = result.translatedText;
-            saveHistory(sourceLang, targetLang, sourceText.value, result.translatedText);
-        } else {
-            logger.error('TRANS', `Translation failed: ${result.error}`);
-            showError(result.error);
-        }
     });
 
     // --- Image OCR Translation Action ---

@@ -16,9 +16,9 @@ The backend engine provides a dual-approach to language inference.
 
 ### Local Node-Llama-Cpp Integration
 The primary built-in driver is handled via `node-llama-cpp`, allowing GPU bindings via GGUF models. 
-- **Initialization**: Scans `process.resourcesPath/models` or `./models` for `.gguf` weights dynamically.
-- **KV Cache Optimization**: The inference context defaults to 2048 tokens (`contextSize: 2048`), heavily clamping VRAM overhead (down to ~4GB) ensuring broad hardware compatibility. 
-- **Session Lifecycles**: A timeout shield guarantees clean VRAM resets via `dispose()` context hooks when transitioning between heavily saturated requests.
+- **Initialization & Lazy Loading**: Scans `process.resourcesPath/models` or `./models` for `.gguf` weights dynamically. The heavyweight model is strictly lazy-loaded into RAM only upon the first translation request to keep idle memory footprint near zero.
+- **KV Cache Optimization**: The inference context defaults to 1024 tokens (`contextSize: 1024`), significantly clamping VRAM overhead to prevent Out-Of-Memory (OOM) errors on lower-spec hardware (e.g., 16GB RAM machines). To handle longer texts within this constraint, basic text translation inputs over 800 characters are automatically split and processed sequentially in chunks.
+- **Session Lifecycles & Memory Disposal**: A timeout shield guarantees clean VRAM resets via `dispose()` context hooks when transitioning between heavily saturated requests. Additionally, when a user switches the UI dropdown to an External API Provider, an explicit `disposeLocalModel()` command is issued to aggressively purge the built-in LLM from RAM instantly.
 
 ### Glossary & Strict Prompt Construction
 TranslateGemma incorporates a hardcoded terminology engine (glossary).
@@ -29,6 +29,7 @@ TranslateGemma incorporates a hardcoded terminology engine (glossary).
 Through REST HTTP calls, the engine maps OpenAI-compatible API schemas (and native Ollama schemas). 
 - Configurable endpoints receive `/chat/completions` or `/api/generate` queries.
 - Advanced Mode reads `localStorage` custom JSON mappings to override inference workflows.
+- **Network Optimization**: The application scans and validates API providers exclusively once during startup (or when manually interacting with the Settings menu). No background polling intervals are used, ensuring zero background network noise.
 
 ## 3. Document Parsing Pipeline (`src/documentParser.js`)
 
@@ -42,8 +43,9 @@ Powered by `adm-zip` and `fast-xml-parser`:
 
 ### PDF Extraction & OCR (`pdfjs-dist` + `tesseract.js`)
 Processed via `src/renderer.js` frontend rendering logic:
-1. `pdfjs-dist` renders vectors page-by-page. Digital text strings are natively grouped.
-2. If text densities reflect less than 20 characters per page (identifying a scanned document), a rasterized `<canvas>` is instantly passed to an embedded `Tesseract.js` worker pool.
+1. `pdfjs-dist` and `tesseract.js` are lazily injected into the DOM on-demand. This saves significant base UI memory by not preloading the libraries globally.
+2. `pdfjs-dist` renders vectors page-by-page. Digital text strings are natively grouped.
+3. If text densities reflect less than 20 characters per page (identifying a scanned document), a rasterized `<canvas>` is instantly passed to an embedded `Tesseract.js` worker pool.
 3. The extracted text strings run through the LLM chunk dispatcher, appending standard `--- Page Break ---` separators.
 
 ## 4. Language Detection & Direction Modalities

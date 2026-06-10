@@ -7,9 +7,7 @@
     <link rel="stylesheet" href="styles/main.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script type="module">
-        import * as pdfjsLib from '../node_modules/pdfjs-dist/build/pdf.min.mjs';
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '../node_modules/pdfjs-dist/build/pdf.worker.min.mjs';
-        window.pdfjsLib = pdfjsLib;
+        // PDF.js will be loaded dynamically when needed
     </script>
 </head>
 <body>
@@ -268,7 +266,7 @@
             </div>
         </div>
     </div>
-    <script src="../node_modules/tesseract.js/dist/tesseract.min.js"></script>
+    <!-- Tesseract.js will be loaded dynamically when needed -->
     <script src="locales.js"></script>
     <script src="voiceUI.js"></script>
     <script src="renderer.js"></script>

@@ -11,6 +11,9 @@ När du startar applikationen möts du av fyra huvudflikar: **Text**, **Dokument
 - **Språkinställningar (Language Settings)**: Använd rullgardinsmenyerna högst upp på skärmen för att välja ditt Källspråk (Source) och ditt Målspråk (Target). Du kan antingen rulla i listan eller söka för att hitta precis rätt språk.
 - **Gränssnittsspråk (UI Localization)**: I appfönstrets övre högra hörn kan du byta gränssnittsspråk mellan `EN` (Engelska), `FI` (Finska) och `SV` (Svenska). Finessen här är att byta språk inte bara ändrar texten på knapparna, utan även dynamiskt sorterar om rullgardinsmenyernas språkalternativ i alfabetisk ordning anpassat till det valda språket!
 
+> [!NOTE]
+> **Prestandaoptimering**: För att TranslateGemma ska fungera smidigt även på äldre datorer laddas inte tunga AI-komponenter (som LLM- och OCR-motorerna) när du öppnar appen. Du kanske märker en liten fördröjning på 1-3 sekunder *allra första gången* du översätter text eller bearbetar ett dokument, eftersom motorerna då laddas in i minnet. Alla efterföljande förfrågningar i samma session kommer att vara blixtsnabba!
+
 ---
 
 ## 2. Textöversättningsläge (Text Translation Mode)

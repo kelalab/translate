@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
     getDebugFlag: () => ipcRenderer.invoke('get-debug-flag'),
     saveDebugArtifacts: (data) => ipcRenderer.invoke('save-debug-artifacts', data),
     resetLlmContext: () => ipcRenderer.invoke('reset-llm-context'),
+    disposeLocalModel: () => ipcRenderer.invoke('dispose-local-model'),
     cancelProcessing: () => ipcRenderer.send('cancel-processing'),
     checkProvider: (endpoint, apiKey) => ipcRenderer.invoke('check-provider', endpoint, apiKey),
     transcribeAudio: (audioBuffer, sourceLang) => ipcRenderer.invoke('transcribe-audio', audioBuffer, sourceLang),

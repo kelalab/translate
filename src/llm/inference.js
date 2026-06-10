@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const { app } = require('electron');
+const { app, net } = require('electron');
 const logger = require('../logger');
 
 
@@ -13,8 +13,29 @@ let session = null;
 let isResetting = false;
 let localModelName = null;
 
-async function initLocalModel() {
+async function checkLocalModel() {
     if (localModelName) return { success: true, modelName: localModelName };
+    
+    const isPackaged = app.isPackaged;
+    const modelsPath = isPackaged
+        ? path.join(process.resourcesPath, 'models')
+        : path.join(__dirname, '..', '..', 'models');
+
+    if (!fs.existsSync(modelsPath)) {
+        return { success: false, error: "Models directory not found at " + modelsPath };
+    }
+
+    const modelFiles = fs.readdirSync(modelsPath).filter(f => f.endsWith('.gguf'));
+    if (modelFiles.length === 0) {
+        return { success: false, error: "No local models found. Please download a model." };
+    }
+
+    localModelName = modelFiles[0];
+    return { success: true, modelName: localModelName };
+}
+
+async function initLocalModel() {
+    if (model) return { success: true, modelName: localModelName };
 
     let getLlama, LlamaChatSession;
     try {
@@ -63,7 +84,7 @@ async function initLocalModel() {
         });
         model = await llama.loadModel({ modelPath });
         context = await model.createContext({
-            contextSize: 2048 // Locks the KV cache to a small footprint (approx 4GB total VRAM)
+            contextSize: 1024 // Locks the KV cache to a small footprint
         });
         session = new LlamaChatSession({ contextSequence: context.getSequence() });
         localModelName = defaultModel;
@@ -86,7 +107,7 @@ async function checkProvider(endpoint, apiKey) {
         url += 'models';
 
         logger.info('API', `Checking provider at: ${url}`);
-        const res = await fetch(url, { headers });
+        const res = await net.fetch(url, { headers });
 
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
@@ -176,7 +197,7 @@ async function translateText(sourceLang, targetLang, text, config) {
                 payload.prompt = prompt;
             }
 
-            const res = await fetch(url, {
+            const res = await net.fetch(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload)
@@ -276,7 +297,7 @@ ${h.actions}:
                 payload.prompt = prompt;
             }
 
-            const res = await fetch(url, {
+            const res = await net.fetch(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload)
@@ -378,7 +399,7 @@ async function resetLocalContext() {
         try {
             const nlc = await import('node-llama-cpp');
             await context.dispose();
-            context = await model.createContext({ contextSize: 2048 });
+            context = await model.createContext({ contextSize: 1024 });
             session = new nlc.LlamaChatSession({ contextSequence: context.getSequence() });
             logger.info('LLM', 'Context reset successful.');
         } catch(e) {
@@ -389,11 +410,30 @@ async function resetLocalContext() {
 }
 
 
+async function disposeLocalModel() {
+    if (isResetting) return;
+    isResetting = true;
+    try {
+        if (session) { session = null; }
+        if (context) { await context.dispose(); context = null; }
+        if (model) { await model.dispose(); model = null; }
+        // Llama instance is kept alive, but the heavyweight model and context are disposed.
+        localModelName = null;
+        logger.info('LLM', 'Local model disposed successfully to free memory.');
+    } catch (e) {
+        logger.error('LLM', `Model disposal failed: ${e.message}`);
+    } finally {
+        isResetting = false;
+    }
+}
+
 module.exports = {
     initLocalModel,
+    checkLocalModel,
     checkProvider,
     translateText,
     translateTextStreaming,
     summarizeConversation,
-    resetLocalContext
+    resetLocalContext,
+    disposeLocalModel
 };
