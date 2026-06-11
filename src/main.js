@@ -8,6 +8,20 @@ const LanguageDetect = require('languagedetect');
 const lngDetector = new LanguageDetect();
 const logger = require('./logger');
 
+// Explicitly enforce proxy at the lowest Chromium level BEFORE app is ready
+const proxyArg = process.argv.find(arg => arg.startsWith('--proxy-server='));
+if (proxyArg) {
+    let proxyUrl = proxyArg.split('=')[1];
+    proxyUrl = proxyUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    
+    app.commandLine.appendSwitch('proxy-server', proxyUrl);
+    app.commandLine.appendSwitch('proxy-bypass-list', '<-loopback>');
+    logger.info('MAIN', `Appended Chromium proxy switch: ${proxyUrl}`);
+}
+
+// Suppress Chromium's own background traffic (component updates, connectivity
+// probes) so the app only ever contacts the configured API endpoints.
+app.commandLine.appendSwitch('disable-background-networking');
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -16,7 +30,10 @@ function createWindow() {
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
-            nodeIntegration: false
+            nodeIntegration: false,
+            // Spellchecker would download Hunspell dictionaries from Google
+            // (redirector.gvt1.com) — unwanted traffic behind a corporate proxy.
+            spellcheck: false
         },
         autoHideMenuBar: true
     });
@@ -36,6 +53,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
     logger.info('MAIN', 'Application ready. Creating window...');
+
     createWindow();
 
     // Lazy-load LLM: Do NOT pre-warm the LLM so it doesn't consume memory until needed.

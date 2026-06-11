@@ -4,6 +4,47 @@ const http = require('http');
 const { app, net } = require('electron');
 const logger = require('../logger');
 
+function fetchWithNetRequest(urlStr, options = {}) {
+    return new Promise((resolve, reject) => {
+        try {
+            const request = net.request({
+                url: urlStr,
+                method: options.method || 'GET'
+            });
+
+            if (options.headers) {
+                for (const [k, v] of Object.entries(options.headers)) {
+                    request.setHeader(k, v);
+                }
+            }
+
+            request.on('response', (response) => {
+                let data = '';
+                response.on('data', (chunk) => { data += chunk.toString('utf8'); });
+                response.on('end', () => {
+                    resolve({
+                        ok: response.statusCode >= 200 && response.statusCode < 300,
+                        status: response.statusCode,
+                        json: async () => JSON.parse(data),
+                        text: async () => data
+                    });
+                });
+                response.on('error', reject);
+            });
+
+            request.on('error', reject);
+
+            if (options.body) {
+                request.write(options.body);
+            }
+
+            request.end();
+        } catch (e) {
+            reject(e);
+        }
+    });
+}
+
 
 
 let llama = null;
@@ -107,7 +148,7 @@ async function checkProvider(endpoint, apiKey) {
         url += 'models';
 
         logger.info('API', `Checking provider at: ${url}`);
-        const res = await net.fetch(url, { headers });
+        const res = await fetchWithNetRequest(url, { headers });
 
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
@@ -197,7 +238,7 @@ async function translateText(sourceLang, targetLang, text, config) {
                 payload.prompt = prompt;
             }
 
-            const res = await net.fetch(url, {
+            const res = await fetchWithNetRequest(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload)
@@ -297,7 +338,7 @@ ${h.actions}:
                 payload.prompt = prompt;
             }
 
-            const res = await net.fetch(url, {
+            const res = await fetchWithNetRequest(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload)
