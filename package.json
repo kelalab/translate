@@ -7,7 +7,8 @@
     "start": "electron .",
     "build": "electron-builder",
     "postinstall": "electron-builder install-app-deps",
-    "rebuild": "electron-builder install-app-deps"
+    "rebuild": "electron-builder install-app-deps",
+    "build:signed": "pwsh -NoProfile -File scripts/build-signed.ps1"
   },
   "keywords": [
     "translation",
@@ -36,11 +37,21 @@
       "src/**/*",
       "package.json"
     ],
+    "afterPack": "scripts/sign-extra-binaries.js",
     "mac": {
       "category": "public.app-category.productivity"
     },
     "win": {
-      "target": "nsis-web"
+      "target": "nsis-web",
+      "signtoolOptions": {
+        "signingHashAlgorithms": [
+          "sha256"
+        ],
+        "rfc3161TimeStampServer": "http://timestamp.digicert.com"
+      },
+      "signExts": [
+        ".node"
+      ]
     },
     "nsis": {
       "guid": "com.antigravity.translategemma.v2",

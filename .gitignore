@@ -11,3 +11,9 @@ scratch2.js
 test/test-text-timing.txt
 test/Translategemma palvelinkielimallin käyttöönotto.docx
 debug-proxy.js
+
+# Code signing credentials - EI KOSKAAN versionhallintaan
+*.pfx
+*.p12
+*.key
+*.pvk
