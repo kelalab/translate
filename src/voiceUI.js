@@ -22,6 +22,7 @@ const instructionEl = document.getElementById('speech-instruction');
 const spinnerEl = document.getElementById('speech-spinner');
 const transcriptEl = document.getElementById('speech-transcript');
 const translationEl = document.getElementById('speech-translation');
+const warningEl = document.getElementById('speech-warning');
 
 const sourceBtn = document.getElementById('btn-record-source');
 const targetBtn = document.getElementById('btn-record-target');
@@ -29,32 +30,87 @@ const targetBtn = document.getElementById('btn-record-target');
 const sourceLangSelect = document.getElementById('speech-source-lang-select');
 const targetLangSelect = document.getElementById('speech-target-lang-select');
 
-// Quick map for renderer languages
-function getLangCode(dropdown) {
-    const text = dropdown.dataset.trueValue || dropdown.querySelector('.select-selected').textContent.trim();
-    // Assuming matching is simplistic based on the text. 
-    // Usually renderer.js maps languages. Let's do a basic map for the MVP speech langs.
-    const map = {
-        'English': 'en',
-        'Finnish': 'fi',
-        'Swedish': 'sv',
-        'Arabic': 'ar',
-        'Russian': 'ru',
-        'Ukrainian': 'uk',
-        'Dari': 'fa',
-        'Persian': 'fa',
-        'Romanian': 'ro',
-        'Somali': 'som',
-        'Kurdish': null,
-        'Albanian': 'sqi'
-    };
-    return map[text] !== undefined ? map[text] : 'en';
+// STT codes: whisper-cli only accepts ISO 639-1 codes (null = Whisper has no such language)
+const STT_LANG_MAP = {
+    'English': 'en',
+    'Finnish': 'fi',
+    'Swedish': 'sv',
+    'Arabic': 'ar',
+    'Russian': 'ru',
+    'Ukrainian': 'uk',
+    'Dari': 'fa',
+    'Persian': 'fa',
+    'Romanian': 'ro',
+    'Somali': 'so',
+    'Kurdish': null,
+    'Albanian': 'sq'
+};
+
+// TTS codes: keys used by ttsService.js (Piper LANG_MAP / Sherpa SHERPA_LANG_MAP)
+const TTS_LANG_MAP = {
+    'English': 'en',
+    'Finnish': 'fi',
+    'Swedish': 'sv',
+    'Arabic': 'ar',
+    'Russian': 'ru',
+    'Ukrainian': 'uk',
+    'Dari': 'fa',
+    'Persian': 'fa',
+    'Romanian': 'ro',
+    'Somali': 'som',
+    'Kurdish': null,
+    'Albanian': 'sqi'
+};
+
+// Whisper small is practically unusable for these (FLEURS WER ~100% for Somali)
+const LOW_ACCURACY_STT_LANGS = ['Somali'];
+
+function getLangName(dropdown) {
+    return dropdown.dataset.trueValue || dropdown.querySelector('.select-selected').textContent.trim();
+}
+
+function getSttCode(langName) {
+    return STT_LANG_MAP[langName] !== undefined ? STT_LANG_MAP[langName] : 'en';
+}
+
+function getTtsCode(langName) {
+    return TTS_LANG_MAP[langName] !== undefined ? TTS_LANG_MAP[langName] : 'en';
+}
+
+function showSttUnsupported(langName) {
+    logger.warn('STT', `Speech recognition not supported for ${langName}`);
+    spinnerEl.style.display = 'none';
+    transcriptEl.style.display = 'none';
+    translationEl.style.display = 'none';
+    instructionEl.style.display = 'block';
+    instructionEl.innerText = window.Locale
+        ? window.Locale.t('speechSttUnsupported').replace('{lang}', langName)
+        : `Speech recognition is not supported for ${langName}.`;
 }
 
 async function startRecording(role) {
     if (speechRecordingActive || speechProcessingActive) return;
+
+    // Check the spoken language up front so we don't record audio that can't be recognized
+    const spokenLangName = getLangName(role === 'source' ? sourceLangSelect : targetLangSelect);
+    if (getSttCode(spokenLangName) === null) {
+        warningEl.style.display = 'none';
+        showSttUnsupported(spokenLangName);
+        return;
+    }
+
     logger.info('AUDIO', `Starting recording for role: ${role}`);
     speechRecordingActive = true;
+
+    if (LOW_ACCURACY_STT_LANGS.includes(spokenLangName)) {
+        logger.warn('STT', `Whisper small has very poor accuracy for ${spokenLangName}`);
+        warningEl.innerText = window.Locale
+            ? window.Locale.t('speechLowAccuracy').replace('{lang}', spokenLangName)
+            : `Speech recognition for ${spokenLangName} is very unreliable. Please verify the transcript.`;
+        warningEl.style.display = 'block';
+    } else {
+        warningEl.style.display = 'none';
+    }
 
     currentSpeechRole = role;
     pcmData = [];
@@ -197,23 +253,30 @@ async function stopRecording() {
 
     // Call APIs
     const role = currentSpeechRole;
-    const sourceCode = getLangCode(sourceLangSelect);
-    const targetCode = getLangCode(targetLangSelect);
-    
-    const sourceName = sourceLangSelect.dataset.trueValue || sourceLangSelect.querySelector('.select-selected').textContent.trim();
-    const targetName = targetLangSelect.dataset.trueValue || targetLangSelect.querySelector('.select-selected').textContent.trim();
+    const sourceName = getLangName(sourceLangSelect);
+    const targetName = getLangName(targetLangSelect);
 
-    const audioInputLang = role === 'source' ? sourceCode : targetCode;
-    const audioTargetLang = role === 'source' ? targetCode : sourceCode;
-    
+    // Whisper (STT) and Piper/Sherpa (TTS) use different language codes
+    const audioInputLang = getSttCode(role === 'source' ? sourceName : targetName);
+    const audioTargetLang = getTtsCode(role === 'source' ? targetName : sourceName);
+
     const llmSourceLang = role === 'source' ? sourceName : targetName;
     const llmTargetLang = role === 'source' ? targetName : sourceName;
 
     try {
         // 1. Transcribe
         logger.info('STT', `Sending audio for transcription (Lang: ${audioInputLang})`);
-        const transcribedText = await window.api.transcribeAudio(wavBuffer, audioInputLang);
-        
+        let transcribedText;
+        try {
+            transcribedText = await window.api.transcribeAudio(wavBuffer, audioInputLang);
+        } catch (sttErr) {
+            // Show the failure instead of the misleading "could not hear anything"
+            logger.error('STT', `Transcription failed (Lang: ${audioInputLang}): ${sttErr.message}`);
+            transcriptEl.style.display = 'block';
+            transcriptEl.innerText = window.Locale ? window.Locale.t('speechSttFailed') : 'Speech recognition failed.';
+            return;
+        }
+
         logger.info('STT', `Transcription result: "${transcribedText}"`);
         transcriptEl.style.display = 'block';
 

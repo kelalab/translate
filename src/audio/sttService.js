@@ -89,6 +89,15 @@ async function transcribeAudio(wavBuffer, sourceLang = 'auto') {
                 return reject(new Error(`Whisper closed with code ${code}`));
             }
 
+            // whisper-cli reports some failures (e.g. "error: unknown language 'som'") on stderr
+            // while still exiting with code 0, which would otherwise look like empty speech.
+            const errMatch = errStr.match(/^\s*error:.*$/im);
+            if (errMatch) {
+                const errLine = errMatch[0].trim();
+                logger.error('STT', `Whisper reported an error despite exit code 0: ${errLine}`);
+                return reject(new Error(`Speech recognition failed: ${errLine}`));
+            }
+
             // Clean up whisper output: remove leading/trailing whitespace, newlines sometimes added
             const cleanResult = outputStr.trim().replace(/^\[.*\]\s*/g, ''); // replace timestamp tags if any slipped through
             logger.debug('STT', `Transcription result: "${cleanResult}"`);
